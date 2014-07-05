@@ -21,3 +21,12 @@ As far as what our plans are for this project, it is to continue to extend the c
 ### Open Source
 
 We have decided to release this project as open source so that others can maybe benefit from it, and maybe improve on what we have done so far.
+
+## Examples
+
+    browser start
+    browser get "https://github.com/"
+    wait 30
+    select "#js-command-bar-field" send "Selenium Script"
+    select ".choice:first-child" click
+    sleep 30
