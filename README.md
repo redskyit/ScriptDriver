@@ -1,6 +1,6 @@
-# seleniumscript
+# ScriptDriver
 
-A simple scripting language for driving selenium based web automation.
+A simple scripting language for driving selenium based web automation and regression testing.
 
 ### Overview
 
