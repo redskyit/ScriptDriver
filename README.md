@@ -34,6 +34,6 @@ We have decided to release this project as open source so that others can maybe 
     browser start
     browser get "https://github.com/"
     wait 30
-    select "#js-command-bar-field" send "Selenium Script"
+    select "#js-command-bar-field" send "ScriptDriver"
     select ".choice:first-child" click
     sleep 30
