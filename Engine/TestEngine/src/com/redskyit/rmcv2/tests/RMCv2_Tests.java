@@ -1,3 +1,7 @@
+// Copyright 2014, RedSky IT
+// This software is release under the MIT License.
+// See LICENSE.txt for details.
+//
 package com.redskyit.rmcv2.tests;
 
 import java.io.BufferedReader;
