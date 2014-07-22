@@ -37,3 +37,18 @@ We have decided to release this project as open source so that others can maybe 
     select "#js-command-bar-field" send "ScriptDriver"
     select ".choice:first-child" click
     sleep 30
+
+## Getting Started
+
+See Engine/lib/INSTALL.txt for instructions on how to download selenium and chromedriver.
+
+To build this project requires eclipse IDE.  Proceed as follows.
+
+1. Open this the Engine folder as a Workspace.
+2. Go to work bench
+3. File, Import ... and choose General -> Existing projects into workspace
+4. Specify the Engine folder as the root.  Eclipse will find TestEngine project.
+5. Click finish to add.
+6. Right click build.xml and select Run As -> Ant Build
+
+Sorry the instructions are a bit sparse, not yet fully figured out what exactly from eclipse needs to go in source control for it to remember all the project settings.

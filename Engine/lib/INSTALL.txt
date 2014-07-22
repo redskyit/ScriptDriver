@@ -1,0 +1,18 @@
+# Installation requires downloading of two files, selenium-server-standalong and chromedirver
+# On MAC, just bash INSTALL.txt
+# On Linux or Windows via Cygwin, uncomment the appropriate chrome driver download then bash INSTALL.txt
+# On windows without cygwin, manually download and extract the files and place them into the lib folder.
+
+# Download selenium server standalone from:-
+# http://selenium-release.storage.googleapis.com/index.html?path=2.39/
+curl http://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.2.jar >selenium-server-standalone-2.42.2.jar
+# curl http://selenium-release.storage.googleapis.com/2.39/selenium-server-2.39.0.zip >selenium-server-2.39.0.zip
+
+# Download chromedriver from: 
+# http://chromedriver.storage.googleapis.com/index.html?path=2.9/
+curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip >chromedriver.zip
+# curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip >chromedriver.zip
+# curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_linux32.zip >chromedriver.zip
+
+unzip chromedriver.zip
+rm -f chromedriver.zip
