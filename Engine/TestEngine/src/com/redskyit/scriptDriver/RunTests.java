@@ -2,7 +2,7 @@
 // This software is release under the MIT License.
 // See LICENSE file for details.
 //
-package com.redskyit.rmcv2.tests;
+package com.redskyit.scriptDriver;
 
 import java.io.BufferedReader;
 import java.io.CharArrayReader;
@@ -35,7 +35,7 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebElement;
 
-public class RMCv2_Tests {
+public class RunTests {
 	enum ContextType {
 		None, Field, Select, Script, XPath
 	}
@@ -53,11 +53,11 @@ public class RMCv2_Tests {
 	private boolean _not;
 	HashMap<String, String> aliases = new HashMap<String,String>();
 	
-    public RMCv2_Tests() throws IOException {
+    public RunTests() throws IOException {
 	}
 
 	public static void main(String[] args) throws IOException {
-    	RMCv2_Tests app = new RMCv2_Tests();
+    	RunTests app = new RunTests();
 		int exitstatus = app.run(args);
     	System.exit(exitstatus);
 	}
