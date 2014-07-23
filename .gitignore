@@ -3,3 +3,4 @@ Engine/lib/selenium-server-standalone-2.42.2.jar
 Engine/.metadata/
 Engine/TestEngine/bin/
 Engine/TestEngine/testEngine.jar
+dist
