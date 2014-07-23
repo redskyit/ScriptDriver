@@ -1,0 +1,10 @@
+This project uses the following open source components:-
+
+Chrome Driver (BSD 3 License)
+https://code.google.com/p/chromedriver/
+http://opensource.org/licenses/BSD-3-Clause
+
+Selenium (Apache 2 License)
+http://www.seleniumhq.org/
+http://www.apache.org/licenses/LICENSE-2.0
+

@@ -1,0 +1,6 @@
+Engine/lib/chromedriver*
+Engine/lib/selenium-server-standalone-*
+Engine/.metadata/
+Engine/TestEngine/bin/
+Engine/TestEngine/testEngine.jar
+dist
