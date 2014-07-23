@@ -67,5 +67,15 @@ For windows, edit run.cmd and alter the JAVA variable to point at your java inst
 
 Run the sample script provided as follows:-
 
-OSX/Linux: ./run.sh examples/github-search.test
-Windows:   run.cmd examples/github-search.test
+OSX/Linux: 
+
+    ./run.sh examples/github-search.test
+
+Windows:   
+
+    run.cmd examples/github-search.test
+
+## Documentation
+### Language Syntax
+
+https://github.com/redskyit/ScriptDriver/wiki/Language-Syntax
