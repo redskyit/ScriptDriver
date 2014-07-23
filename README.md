@@ -52,3 +52,20 @@ To build this project requires eclipse IDE.  Proceed as follows.
 6. Right click build.xml and select Run As -> Ant Build
 
 Sorry the instructions are a bit sparse, not yet fully figured out what exactly from eclipse needs to go in source control for it to remember all the project settings.
+
+## Binary Distribution
+
+A pre-built version of the current release is available here:
+
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
+
+The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
+
+Extract the archive to a folder.  Navigate to the folder at a command prompt (windows) or shell (OSX/Linux).
+
+For windows, edit run.cmd and alter the JAVA variable to point at your java install.
+
+Run the sample script provided as follows:-
+
+OSX/Linux: ./run.sh examples/github-search.test
+Windows:   run.cmd examples/github-search.test
