@@ -11,8 +11,12 @@ curl http://selenium-release.storage.googleapis.com/2.42/selenium-server-standal
 # Download chromedriver from: 
 # http://chromedriver.storage.googleapis.com/index.html?path=2.9/
 curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_mac32.zip >chromedriver.zip
-# curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip >chromedriver.zip
-# curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_linux32.zip >chromedriver.zip
-
 unzip chromedriver.zip
 rm -f chromedriver.zip
+
+curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_win32.zip >chromedriver.zip
+unzip chromedriver.zip
+rm -f chromedriver.zip
+
+# curl http://chromedriver.storage.googleapis.com/2.9/chromedriver_linux32.zip >chromedriver.zip
+
