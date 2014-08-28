@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/TestEngine/src/com/redskyit/scriptDriver/RunTests.java"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.redskyit.scriptDriver.RunTests"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="tests/start-trunk.test"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="TestEngine"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dwebdriver.chrome.driver=ScriptDriver-0.1/lib/chromedriver -classpath ScriptDriver-0.1/lib/testEngine.jar:ScriptDriver-0.1/lib/selenium-server-standalone-2.42.2.jar"/>
+<stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/Users/adf/Sites/RMC2/trunk/tests/regression"/>
+</launchConfiguration>
