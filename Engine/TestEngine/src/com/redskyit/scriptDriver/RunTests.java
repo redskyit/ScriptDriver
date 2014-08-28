@@ -172,6 +172,8 @@ public class RunTests {
 					|| tokenizer.ttype == '{'
 					|| tokenizer.ttype == '}'
 					|| tokenizer.ttype == ','
+					|| tokenizer.ttype == '*'
+					|| tokenizer.ttype == ':'
 			) {
 				System.out.print(' ');
 				String arg;
@@ -200,9 +202,9 @@ public class RunTests {
 					// of the regular expression (so \\" becomes \")
 					arg = '"' + tokenizer.sval.replaceAll("\"", "\\\\\"") + '"';
 					break;
-				case ',':
-					arg = ",";
-					break;
+				case ',': arg = ","; break;
+				case ':': arg = ":"; break;
+				case '*': arg = "*"; break;
 				default:
 					arg = tokenizer.sval;
 				}
@@ -233,6 +235,13 @@ public class RunTests {
 			if (tokenizer.ttype == ',') {
 				sep = ',';	// next word joined by comma
 				return;
+			}
+			if (tokenizer.ttype == ':') {
+				sep = ':';
+				return;
+			}
+			if (tokenizer.ttype == '*') {
+				arg = "*";
 			}
 			args = args == null ? arg : args + sep + arg;
 			sep = isep;
@@ -697,10 +706,16 @@ public class RunTests {
 		if (cmd.equals("at")) {
 			int x = 0, y = 0;
 			tokenizer.nextToken();
-			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
 				x = (int) tokenizer.nval;
 				System.out.print(' ');
-				System.out.print(x);
+				if (tokenizer.ttype == '*') {
+					x = -1;
+					System.out.print('*');
+				} else {
+					x = (int) tokenizer.nval;
+					System.out.print(x);
+				}
 				tokenizer.nextToken();
 				if (tokenizer.ttype == ',') {
 					tokenizer.nextToken();
@@ -712,7 +727,7 @@ public class RunTests {
 						if (null == context) throw new Exception("at command requires a context at line " + tokenizer.lineno());
 						do {
 							Point loc = context.getLocation();
-							if (_skip || (loc.x == x && loc.y == y) != _not) {
+							if (_skip || ((loc.x == x || x == -1) && loc.y == y) != _not) {
 								_not = false;
 								return;
 							}
@@ -728,13 +743,25 @@ public class RunTests {
 		}
 
 		if (cmd.equals("size")) {
-			int w = 0, h = 0;
+			int mw = 0, w = 0, h = 0;
 			tokenizer.nextToken();
-			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-				w = (int) tokenizer.nval;
+			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
 				System.out.print(' ');
-				System.out.print(w);
+				if (tokenizer.ttype == '*') {
+					mw = w = -1;
+					System.out.print('*');
+				} else {
+					mw = w = (int) tokenizer.nval;
+					System.out.print(w);
+				}
 				tokenizer.nextToken();
+				if (tokenizer.ttype == ':') {
+					tokenizer.nextToken();
+					w = (int) tokenizer.nval;
+					System.out.print(':');
+					System.out.print(w);
+					tokenizer.nextToken();
+				}
 				if (tokenizer.ttype == ',') {
 					tokenizer.nextToken();
 					System.out.print(',');
@@ -745,14 +772,14 @@ public class RunTests {
 						if (null == context) throw new Exception("size command requires a context at line " + tokenizer.lineno());
 						do {
 							Dimension size = context.getSize();
-							if (_skip || (size.width == w && size.height == h) != _not) {
+							if (_skip || ((mw == -1 || (size.width >= mw && size.width <= w)) && size.height == h) != _not) {
 								_not = false;
 								return;
 							}
 							sleepAndReselect(100);
 						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 						info(context, contextSelector, false);
-						throw new Exception("Location check failed at line " + tokenizer.lineno());
+						throw new Exception("Size check failed at line " + tokenizer.lineno());
 					}
 				}
 			}
