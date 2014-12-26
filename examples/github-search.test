@@ -1,7 +1,7 @@
 browser start
-browser get "https://github.com/"
+browser get "https://github.com/search"
 wait 30
-select "#js-command-bar-field" send "ScriptDriver"
+select "[name='q']" send "ScriptDriver"
 sleep 1
-select ".choice:first-child" click
+select "button.button" click
 sleep 30
