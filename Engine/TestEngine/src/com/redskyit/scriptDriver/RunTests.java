@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.zip.CRC32;
 
 import org.openqa.selenium.By;
 
@@ -607,7 +608,20 @@ public class RunTests {
 				if (_skip) return;
 				System.out.print(' ');
 				System.out.println(tokenizer.sval);
-				this.testContextValue(tokenizer);
+				this.testContextValue(tokenizer, false);
+				return;
+			}
+			System.out.println();
+			throw new Exception(cmd + " command requires a value argument");
+		}
+		
+		if (cmd.equals("checksum")) {
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
+				if (_skip) return;
+				System.out.print(' ');
+				System.out.println(tokenizer.sval);
+				this.testContextValue(tokenizer, true);
 				return;
 			}
 			System.out.println();
@@ -960,7 +974,13 @@ public class RunTests {
 			if (tag.equals("input") || tag.equals("select")) {
 				System.out.print(" check \"" + element.getAttribute("value") + "\"");
 			} else {
-				System.out.print(" check \"" + element.getText() + "\"");
+				if (tag.equals("textarea")) {
+					CRC32 crc = new CRC32();
+					crc.update(element.getAttribute("value").getBytes());
+					System.out.print(" checksum \"crc32:" + crc.getValue() + "\"");
+				} else {
+					System.out.print(" check \"" + element.getText() + "\"");
+				}
 			}
 			System.out.println();
 		} catch(Exception e) {
@@ -979,14 +999,23 @@ public class RunTests {
 	private void addAlias(String alias, String args) {
 		aliases.put(alias, args);		
 	}
+	
+	private boolean compareStrings(String s1, String s2, boolean checksum) {
+		if (checksum) {
+			CRC32 crc = new CRC32();
+			crc.update(s1.getBytes());
+			return ("crc32:"+crc.getValue()).equals(s2);
+		}
+		return s1.equals(s2);
+	}
 
-	private void testContextValue(StreamTokenizer tokenizer) throws Exception {
+	private void testContextValue(StreamTokenizer tokenizer, boolean checksum) throws Exception {
 		String tagName = context.getTagName();
 		if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) { 
-			System.out.print("> Checking element value is equal to '" + tokenizer.sval + "'");
+			System.out.println("> Checking element value is equal to '" + tokenizer.sval + "'");
 			do {
 				String value = context.getAttribute("value");
-				if (_not != (null != value && value.equals(tokenizer.sval))) {
+				if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
 					_not = false;
 					return;
 				}
@@ -997,7 +1026,7 @@ public class RunTests {
 		} else {
 			do {
 				String value = context.getText();
-				if (_not != (null != value && value.equals(tokenizer.sval))) {
+				if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
 					_not = false;
 					return;
 				}
