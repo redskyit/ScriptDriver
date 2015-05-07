@@ -22,6 +22,7 @@ import org.openqa.selenium.By;
 
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.Point;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.browserlaunchers.Sleeper;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -693,9 +694,13 @@ public class RunTests {
 			System.out.println();
 			if (null == context) throw new Exception("selected command requires a context at line " + tokenizer.lineno());
 			do {
-				if (_skip || context.isSelected() != _not) {
-					_not = false;
-					return;
+				try {
+					if (_skip || context.isSelected() != _not) {
+						_not = false;
+						return;
+					}
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -707,9 +712,13 @@ public class RunTests {
 			System.out.println();
 			if (null == context) throw new Exception("displayed command requires a context at line " + tokenizer.lineno());
 			do {
-				if (_skip || context.isDisplayed() != _not) {
-					_not = false;
-					return;
+				try {
+					if (_skip || context.isDisplayed() != _not) {
+						_not = false;
+						return;
+					}
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -740,10 +749,14 @@ public class RunTests {
 						System.out.println();
 						if (null == context) throw new Exception("at command requires a context at line " + tokenizer.lineno());
 						do {
-							Point loc = context.getLocation();
-							if (_skip || ((loc.x == x || x == -1) && loc.y == y) != _not) {
-								_not = false;
-								return;
+							try {
+								Point loc = context.getLocation();
+								if (_skip || ((loc.x == x || x == -1) && loc.y == y) != _not) {
+									_not = false;
+									return;
+								}
+							} catch(StaleElementReferenceException e) {
+								// element has gone stale, re-select it
 							}
 							sleepAndReselect(100);
 						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -785,10 +798,14 @@ public class RunTests {
 						System.out.println();
 						if (null == context) throw new Exception("size command requires a context at line " + tokenizer.lineno());
 						do {
-							Dimension size = context.getSize();
-							if (_skip || ((mw == -1 || (size.width >= mw && size.width <= w)) && size.height == h) != _not) {
-								_not = false;
-								return;
+							try {
+								Dimension size = context.getSize();
+								if (_skip || ((mw == -1 || (size.width >= mw && size.width <= w)) && size.height == h) != _not) {
+									_not = false;
+									return;
+								}
+							} catch(StaleElementReferenceException e) {
+								// element has gone stale, re-select it
 							}
 							sleepAndReselect(100);
 						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -809,9 +826,13 @@ public class RunTests {
 				System.out.println();
 				if (null == context) throw new Exception("tag command requires a context at line " + tokenizer.lineno());
 				do {
-					if (_skip || tokenizer.sval.equals(context.getTagName()) != _not) {
-						_not = false;
-						return;
+					try {
+						if (_skip || tokenizer.sval.equals(context.getTagName()) != _not) {
+							_not = false;
+							return;
+						}
+					} catch(StaleElementReferenceException e) {
+						// element has gone stale, re-select it
 					}
 					sleepAndReselect(100);
 				} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -1025,10 +1046,14 @@ public class RunTests {
 			throw new Exception("check value \"" + tokenizer.sval + "\" test failed for current field context at line " + tokenizer.lineno());
 		} else {
 			do {
-				String value = context.getText();
-				if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
-					_not = false;
-					return;
+				try {
+					String value = context.getText();
+					if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
+						_not = false;
+						return;
+					}
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -1046,10 +1071,13 @@ public class RunTests {
 					if (set && !tagName.equals("select")) context.clear();
 					context.sendKeys(tokenizer.sval);
 					return;
+				} catch(StaleElementReferenceException se) {
+					// element has gone stale, re-select it
+					e = se;
 				} catch(Exception ex) {
 					e = ex;
-					sleepAndReselect(100);
 				}
+				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 			throw new Exception("could not send keys to element " + e.getMessage());
 		} else {
@@ -1064,14 +1092,19 @@ public class RunTests {
 	private void sleepAndReselect(int ms) throws Exception {
 		Sleeper.sleepTight(ms);
 		try {
-			if (ctype == ContextType.XPath) {
+			if (ctype == ContextType.XPath || ctype == ContextType.Field) {
 				context = (RemoteWebElement) driver.findElement(By.xpath(selector));
 			}
 			else if (ctype == ContextType.Select) {
 				context = (RemoteWebElement) driver.findElement(By.cssSelector(selector));
 			}
-			else if (ctype == ContextType.Field) {
-				context = (RemoteWebElement) driver.findElement(By.xpath(selector));
+			else if (ctype == ContextType.Script) {
+				Object result = driver.executeAsyncScript(selector);
+				if (null != result) {
+					if (result.getClass() == RemoteWebElement.class) {
+						context = (RemoteWebElement) result;
+					}
+				}
 			}
 		} catch (Exception e) {
 			throw e;
