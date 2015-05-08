@@ -701,6 +701,7 @@ public class RunTests {
 					}
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -719,6 +720,7 @@ public class RunTests {
 					}
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -757,6 +759,7 @@ public class RunTests {
 								}
 							} catch(StaleElementReferenceException e) {
 								// element has gone stale, re-select it
+								System.out.println("// EXCEPTION : StaleElementReference");
 							}
 							sleepAndReselect(100);
 						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -806,6 +809,7 @@ public class RunTests {
 								}
 							} catch(StaleElementReferenceException e) {
 								// element has gone stale, re-select it
+								System.out.println("// EXCEPTION : StaleElementReference");
 							}
 							sleepAndReselect(100);
 						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -833,6 +837,7 @@ public class RunTests {
 						}
 					} catch(StaleElementReferenceException e) {
 						// element has gone stale, re-select it
+						System.out.println("// EXCEPTION : StaleElementReference");
 					}
 					sleepAndReselect(100);
 				} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -980,33 +985,41 @@ public class RunTests {
 	}
 
 	private void info(WebElement element, String selector, boolean verify) throws Exception {
-		try {
-			Point loc = element.getLocation();
-			Dimension size = element.getSize();
-			String tag = element.getTagName();
-			System.out.print(null == selector ? "test-id \"" + element.getAttribute("test-id") + "\"" : selector);
-			System.out.print(" info");
-			System.out.print(" tag " + tag);
-			System.out.print(" at " + loc.x + "," + loc.y);
-			System.out.print(" size " + size.width + "," + size.height);
-			System.out.print((element.isDisplayed() ? "" : " not") + " displayed");
-			System.out.print((element.isEnabled() ? "" : " not") + " enabled");
-			System.out.print((element.isSelected() ? "" : " not") + " selected");
-			if (tag.equals("input") || tag.equals("select")) {
-				System.out.print(" check \"" + element.getAttribute("value") + "\"");
-			} else {
-				if (tag.equals("textarea")) {
-					CRC32 crc = new CRC32();
-					crc.update(element.getAttribute("value").getBytes());
-					System.out.print(" checksum \"crc32:" + crc.getValue() + "\"");
+		do {
+			try {
+				Point loc = element.getLocation();
+				Dimension size = element.getSize();
+				String tag = element.getTagName();
+				System.out.print(null == selector ? "test-id \"" + element.getAttribute("test-id") + "\"" : selector);
+				System.out.print(" info");
+				System.out.print(" tag " + tag);
+				System.out.print(" at " + loc.x + "," + loc.y);
+				System.out.print(" size " + size.width + "," + size.height);
+				System.out.print((element.isDisplayed() ? "" : " not") + " displayed");
+				System.out.print((element.isEnabled() ? "" : " not") + " enabled");
+				System.out.print((element.isSelected() ? "" : " not") + " selected");
+				if (tag.equals("input") || tag.equals("select")) {
+					System.out.print(" check \"" + element.getAttribute("value") + "\"");
 				} else {
-					System.out.print(" check \"" + element.getText() + "\"");
+					if (tag.equals("textarea")) {
+						CRC32 crc = new CRC32();
+						crc.update(element.getAttribute("value").getBytes());
+						System.out.print(" checksum \"crc32:" + crc.getValue() + "\"");
+					} else {
+						System.out.print(" check \"" + element.getText() + "\"");
+					}
 				}
+				System.out.println();
+				return;
+			} catch(StaleElementReferenceException e) {
+				// element has gone stale, re-select it
+				System.out.println("// EXCEPTION : StaleElementReference");
+			} catch(Exception e) {
+				if (verify) throw e;
+				return;
 			}
-			System.out.println();
-		} catch(Exception e) {
-			if (verify) throw e;
-		}
+			sleepAndReselect(100);
+		}  while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 	}
 
 	// Find all test-id fields, and dump their info
@@ -1033,12 +1046,22 @@ public class RunTests {
 	private void testContextValue(StreamTokenizer tokenizer, boolean checksum) throws Exception {
 		String tagName = context.getTagName();
 		if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) { 
-			System.out.println("> Checking element value is equal to '" + tokenizer.sval + "'");
+			System.out.println("// Checking element value is equal to '" + tokenizer.sval + "'");
 			do {
-				String value = context.getAttribute("value");
-				if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
-					_not = false;
-					return;
+				try {
+					String value = context.getAttribute("value");
+					if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
+						_not = false;
+						return;
+					}
+					if (null == value) {
+						System.out.println("// " + tokenizer.sval + " VALUE IS NULL");				
+					} else {
+						System.out.println("// " + tokenizer.sval + " DOES NOT MATH " + value);
+					}
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -1052,8 +1075,14 @@ public class RunTests {
 						_not = false;
 						return;
 					}
+					if (null == value) {
+						System.out.println("// " + tokenizer.sval + " VALUE IS NULL");				
+					} else {
+						System.out.println("// " + tokenizer.sval + " DOES NOT MATH " + value);
+					}
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
@@ -1073,6 +1102,7 @@ public class RunTests {
 					return;
 				} catch(StaleElementReferenceException se) {
 					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
 					e = se;
 				} catch(Exception ex) {
 					e = ex;
@@ -1090,6 +1120,7 @@ public class RunTests {
 	}
 	
 	private void sleepAndReselect(int ms) throws Exception {
+		System.out.println("// SLEEP AND RESELECT [wait=" + (_waitFor - (new Date()).getTime()) + "]");
 		Sleeper.sleepTight(ms);
 		try {
 			if (ctype == ContextType.XPath || ctype == ContextType.Field) {
@@ -1109,6 +1140,7 @@ public class RunTests {
 		} catch (Exception e) {
 			throw e;
 		}
+		System.out.println("// RESELECTED " + selector);
 	}
 
 	private void xpathContext(StreamTokenizer tokenizer) throws Exception {
