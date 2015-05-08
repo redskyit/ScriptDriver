@@ -1,5 +1,12 @@
 #!/bin/bash
 test ! -d dist -o ! -d tools && { echo "Please run tools/mkdist.sh from root folder" ; exit 1; }
+
+# make sure its built
+cd Engine/TestEngine
+ant || exit $?
+cd ../..
+
+# Build distribution package
 cd dist
 VERSION=0.1
 DIST=ScriptDriver-$VERSION
