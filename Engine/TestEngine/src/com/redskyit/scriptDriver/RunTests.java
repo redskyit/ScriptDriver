@@ -20,9 +20,14 @@ import java.util.zip.CRC32;
 
 import org.openqa.selenium.By;
 
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.ElementNotVisibleException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.browserlaunchers.Sleeper;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -35,6 +40,7 @@ import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.logging.Logs;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.RemoteWebElement;
 
 public class RunTests {
@@ -499,7 +505,7 @@ public class RunTests {
 				return;
 			}
 			System.out.println();
-			throw new Exception("exec-include argument should be string or a word");
+			throw new Exception(cmd + " argument should be string or a word");
 		}
 		
 		if (null == driver) {
@@ -516,7 +522,7 @@ public class RunTests {
 				return;
 			}
 			System.out.println();
-			throw new Exception("field command requires a form.field argument");
+			throw new Exception(cmd + " command requires a form.field argument");
 		}
 
 		if (cmd.equals("select")) {
@@ -529,7 +535,7 @@ public class RunTests {
 				return;
 			}
 			System.out.println();
-			throw new Exception("select command requires a css selector argument");
+			throw new Exception(cmd + " command requires a css selector argument");
 		}
 		
 		if (cmd.equals("xpath")) {
@@ -542,7 +548,7 @@ public class RunTests {
 				return;
 			}
 			System.out.println();
-			throw new Exception("select command requires a css selector argument");
+			throw new Exception(cmd + " command requires a css selector argument");
 		}
 		
 		if (cmd.equals("wait")) {
@@ -555,7 +561,7 @@ public class RunTests {
 				_waitFor = (long) ((new Date()).getTime() + (tokenizer.nval * 1000));
 				return;
 			}
-			throw new Exception("wait command requires a seconds argument");
+			throw new Exception(cmd + " command requires a seconds argument");
 		}
 		
 		if (cmd.equals("if")) {
@@ -631,17 +637,41 @@ public class RunTests {
 
 		if (cmd.equals("click")) {
 			System.out.println();
-			if (null == context) throw new Exception("clear command requires a field context at line " + tokenizer.lineno());
+			if (null == context) throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
+			do {
+				try {
+					if (!_skip) {
+						context.click();
+					}
+					return;
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference");
+				} catch(WebDriverException e2) {
+					System.out.println("// EXCEPTION : WebDriverException");	
+					// Try and auto-recover by scrolling this element into view
+					waitForAtLeast(1000);
+					scrollContextIntoView(context);
+				}
+				sleepAndReselect(100);
+			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
+			info(context, contextSelector, false);
+			throw new Exception("tag check failed at line " + tokenizer.lineno());
+		}
+		
+		if (cmd.equals("scroll-into-view")) {
+			System.out.println();
+			if (null == context) throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
 			if (!_skip) {
 				try {
-					context.click();
+					scrollContextIntoView(context);
 				} catch(Exception e) {
 					System.out.println(e.getMessage());
 					info(context, contextSelector, false);
 					throw e;
 				}
 			}
-			return;
+			return;			
 		}
 
 		if (cmd.equals("clear")) {
@@ -984,6 +1014,12 @@ public class RunTests {
 		throw new Exception("unrecognised command, " + cmd);
 	}
 
+	private void waitForAtLeast(int i) {
+		if (_waitFor < (new Date()).getTime() + i) {
+			_waitFor = (long) (new Date()).getTime() + i;
+		}
+	}
+
 	private void info(WebElement element, String selector, boolean verify) throws Exception {
 		do {
 			try {
@@ -1055,9 +1091,9 @@ public class RunTests {
 						return;
 					}
 					if (null == value) {
-						System.out.println("// " + tokenizer.sval + " VALUE IS NULL");				
+						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
 					} else {
-						System.out.println("// " + tokenizer.sval + " DOES NOT MATH " + value);
+						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
 					}
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
@@ -1076,9 +1112,9 @@ public class RunTests {
 						return;
 					}
 					if (null == value) {
-						System.out.println("// " + tokenizer.sval + " VALUE IS NULL");				
+						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
 					} else {
-						System.out.println("// " + tokenizer.sval + " DOES NOT MATH " + value);
+						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
 					}
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
@@ -1137,6 +1173,9 @@ public class RunTests {
 					}
 				}
 			}
+		} catch(NoSuchElementException e2) {
+			// element has gone stale, re-select it
+			System.out.println("// EXCEPTION : NoSuchElement");
 		} catch (Exception e) {
 			throw e;
 		}
@@ -1228,5 +1267,17 @@ public class RunTests {
 			if (_not) { _test = true; context = null; _not = false; return; }
 			throw new Exception("field reference " + tokenizer.sval + " is invalid on line " + tokenizer.lineno() + " " + e.getMessage());
 		}
+	}
+	
+	private void scrollContextIntoView(WebElement element) throws Exception {
+        Capabilities cp = ((RemoteWebDriver) driver).getCapabilities();
+        if (cp.getBrowserName().equals("chrome")) {
+            try {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", element);
+            } catch (Exception e) {
+    			throw e;
+            }
+        }
+
 	}
 }
