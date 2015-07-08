@@ -22,7 +22,6 @@ import org.openqa.selenium.By;
 
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
-import org.openqa.selenium.ElementNotVisibleException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -988,9 +987,18 @@ public class RunTests {
 		    		LogEntries entries = log.get(LogType.BROWSER);
 		    		System.out.println(entries);
 		    		List<LogEntry> list = entries.getAll();
+		    		boolean fail = false;
 		    		for (int i = 0; i < list.size(); i++) {
-		    			System.out.println(list.get(i));
+		    			LogEntry e = list.get(i);
+		    			System.out.println(e);
+		    			if (e.getLevel().getName().equals("SEVERE") 
+		    					&& e.getMessage().indexOf("Uncaught ") != -1
+		    					&& e.getMessage().indexOf(" Error:") != -1) {
+		    				System.out.println("*** Uncaught Error ***");
+		    				fail = true;
+		    			}		    			
 		    		}
+		    		if (fail) throw new Exception("Unhandled Exception! Check console log for details");
 					return;
 				}
 				throw new Exception("invalid log action");
