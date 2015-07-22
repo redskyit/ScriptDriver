@@ -4,7 +4,7 @@ A simple scripting language for driving selenium based web automation and regres
 
 ### Overview
 
-Script Driver is a basic scripting language for Selenium, designed to take some of the pain out of writing and updating automation and regression tests for web pages.  Selenium is a powerful automation tool for web pages, but it requires a fair amount of code to do even the simplest things.  The idea behind Script Driver is to hide all the complication inside the script engine, and expose the power of selenium through the simplest of scripting commands.  Simple and quick was the goal behind this project.
+Script Driver is a simple yet powerful scripting language for Selenium, designed to take some of the pain out of writing and updating automation and regression tests for web pages.  Selenium is a powerful automation tool for web pages, but it requires a fair amount of code to do even the simplest things.  The idea behind Script Driver is to hide all the complication inside the script engine, and expose the power of selenium through the simplest of scripting commands.  Simple and quick was the goal behind this project.
 
 ### Project Status
 
