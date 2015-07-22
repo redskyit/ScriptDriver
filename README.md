@@ -8,22 +8,22 @@ Script Driver is a simple yet powerful scripting language for Selenium, designed
 
 ### Project Status
 
-The current state of this project is, that I developed it just enough for me to be able to provide a reliable set of regression tests for the html5 application I was developing.  It was also my first time ever using selenium.  That means that this is by no means a complete scripting language for selenium, it certainly does not support all of the features selenium supports, and only supports ChromeDriver at present.  It also means that it was developed incrememntally and new features were added quickly as I found a need for them, which means there was no original design, and no design approval process for enhancements.
+The current state of this project is, that I developed it enough for me to be able to provide a reliable set of regression tests for the html5 application I am developing.  It is by no means a complete scripting language for selenium, as it does not support all of the features selenium supports, and only supports ChromeDriver at present.  It was also developed incrememntally and new features were added quickly and so there was no original design, and no design approval process for enhancements.
 
-So what I have ended up with is something that works for automating web testing in chrome (for the most part) but is lacking in some areas and could do with a re-think in others.
+ScriptDriver continues to be the main testing environment for the HTML5 application we maintain and has been ever since it was first released.
 
-If you're looking for something quite simple yet quite powerful to get you going in web automation / regression testing, you should give ScriptDriver a go, but you might have to get your hands dirty in the engine code to make it do exactly what you want.
+If you're looking for something simple, yet quite powerful, to get you going in web automation / regression testing, you should give ScriptDriver a go.
 
 ### Future Plans
 
 As far as to what our plans are for this project, it is 
 
-- to continue to extend the current language as needed
+- to continue to extend the current language as needed (ongoing)
 - add support for browsers other than chrome
-- possibly re-factor some of the syntax
+- possibly re-factor some of the syntax (extending it on an ongoing basis)
 - maybe even re-implement the language in something other than java (nodejs perhaps).  
 
-The test script files themselves are platform independent.  The engine is written in java so should run cross platform, though I have not yet attempted to run it on anything other than OSX.
+The test script files themselves are platform independent.  The engine is written in java so should run cross platform, though I have only tested it on OS X and Windows.
 
 ### Open Source
 
