@@ -649,13 +649,12 @@ public class RunTests {
 				} catch(WebDriverException e2) {
 					System.out.println("// EXCEPTION : WebDriverException");	
 					// Try and auto-recover by scrolling this element into view
-					waitForAtLeast(1000);
 					scrollContextIntoView(context);
 				}
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 			info(context, contextSelector, false);
-			throw new Exception("tag check failed at line " + tokenizer.lineno());
+			throw new Exception("click failed at line " + tokenizer.lineno());
 		}
 		
 		if (cmd.equals("scroll-into-view")) {
@@ -857,10 +856,12 @@ public class RunTests {
 				System.out.print(' ');
 				System.out.print(tokenizer.sval);
 				System.out.println();
+				String tag = "unknown";
 				if (null == context) throw new Exception("tag command requires a context at line " + tokenizer.lineno());
 				do {
 					try {
-						if (_skip || tokenizer.sval.equals(context.getTagName()) != _not) {
+						tag = context.getTagName();
+						if (_skip || tokenizer.sval.equals(tag) != _not) {
 							_not = false;
 							return;
 						}
@@ -871,7 +872,7 @@ public class RunTests {
 					sleepAndReselect(100);
 				} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 				info(context, contextSelector, false);
-				throw new Exception("tag check failed at line " + tokenizer.lineno());
+				throw new Exception("tag \"" + tokenizer.sval + "\" check failed, tag is " + tag + " at line " + tokenizer.lineno());
 			}
 			System.out.println();
 			throw new Exception("tag command has missing tag name at line " + tokenizer.lineno());
@@ -1022,12 +1023,6 @@ public class RunTests {
 		throw new Exception("unrecognised command, " + cmd);
 	}
 
-	private void waitForAtLeast(int i) {
-		if (_waitFor < (new Date()).getTime() + i) {
-			_waitFor = (long) (new Date()).getTime() + i;
-		}
-	}
-
 	private void info(WebElement element, String selector, boolean verify) throws Exception {
 		do {
 			try {
@@ -1164,7 +1159,12 @@ public class RunTests {
 	}
 	
 	private void sleepAndReselect(int ms) throws Exception {
-		System.out.println("// SLEEP AND RESELECT [wait=" + (_waitFor - (new Date()).getTime()) + "]");
+		long waitTimer = (_waitFor - (new Date()).getTime());
+		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "]");
+		if (waitTimer < -(ms*2)) {
+			System.out.println("AUTO WAIT FOR 1s");
+			_waitFor = (new Date()).getTime() + 1000;
+		}
 		Sleeper.sleepTight(ms);
 		try {
 			if (ctype == ContextType.XPath || ctype == ContextType.Field) {
