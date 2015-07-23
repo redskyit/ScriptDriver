@@ -59,6 +59,7 @@ public class RunTests {
 	private boolean _skip;
 	private boolean _not;
 	HashMap<String, String> aliases = new HashMap<String,String>();
+	private boolean autolog = false;
 	
     public RunTests() throws IOException {
 	}
@@ -284,10 +285,15 @@ public class RunTests {
 	}
 
 	private void runCommand(StreamTokenizer tokenizer, File file, String source) throws Exception {
+		// Automatic log dumping
+		if (autolog && null != driver) {
+			dumpLog();
+		}
+		
 		String cmd = tokenizer.sval;
 		System.out.printf("[%s,%d] ", source, tokenizer.lineno());
 		System.out.print(tokenizer.sval);
-		
+
 		if (cmd.equals("browser")) {
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
@@ -345,7 +351,10 @@ public class RunTests {
 				
 				if (tokenizer.sval.equals("close")) {
 					System.out.println();
-					if (!_skip) driver.close();
+					if (!_skip) {
+						driver.close();
+						autolog = false;
+					}
 					return;
 				}
 				
@@ -507,6 +516,31 @@ public class RunTests {
 			throw new Exception(cmd + " argument should be string or a word");
 		}
 		
+		if (cmd.equals("log")) {
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+				String action = tokenizer.sval;
+				System.out.print(' ');
+				System.out.print(action);
+				if (action.equals("dump")) {
+					System.out.println("");
+					if (driver != null) dumpLog();
+					return;
+				}
+				if (action.equals("auto")) {
+					tokenizer.nextToken();
+					String onoff = tokenizer.sval;
+					System.out.print(' ');
+					System.out.println(onoff);
+					autolog = onoff.equals("on") || onoff.equals("true");
+					return;
+				}
+				throw new Exception("invalid log action");
+			}
+			System.out.println();
+			throw new Exception("log argument should be string or a word");
+		}
+				
 		if (null == driver) {
 			throw new Exception("browser start must be used before attempt to interract with the browser");
 		}
@@ -977,37 +1011,6 @@ public class RunTests {
 			throw new Exception("echo argument should be string or a word");
 		}
 
-		if (cmd.equals("log")) {
-			tokenizer.nextToken();
-			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
-				String action = tokenizer.sval;
-				System.out.print(' ');
-				System.out.println(action);
-				if (action.equals("dump")) {
-		    		Logs log = driver.manage().logs();
-		    		LogEntries entries = log.get(LogType.BROWSER);
-		    		System.out.println(entries);
-		    		List<LogEntry> list = entries.getAll();
-		    		boolean fail = false;
-		    		for (int i = 0; i < list.size(); i++) {
-		    			LogEntry e = list.get(i);
-		    			System.out.println(e);
-		    			if (e.getLevel().getName().equals("SEVERE") 
-		    					&& e.getMessage().indexOf("Uncaught ") != -1
-		    					&& e.getMessage().indexOf(" Error:") != -1) {
-		    				System.out.println("*** Uncaught Error ***");
-		    				fail = true;
-		    			}		    			
-		    		}
-		    		if (fail) throw new Exception("Unhandled Exception! Check console log for details");
-					return;
-				}
-				throw new Exception("invalid log action");
-			}
-			System.out.println();
-			throw new Exception("log argument should be string or a word");
-		}
-		
 		if (cmd.equals("debugger")) {
 			System.out.println();
 			Sleeper.sleepTightInSeconds(10);
@@ -1021,6 +1024,25 @@ public class RunTests {
 		}
 		
 		throw new Exception("unrecognised command, " + cmd);
+	}
+
+	private void dumpLog() throws Exception {
+		Logs log = driver.manage().logs();
+		LogEntries entries = log.get(LogType.BROWSER);
+		// System.out.println(entries);
+		List<LogEntry> list = entries.getAll();
+		boolean fail = false;
+		for (int i = 0; i < list.size(); i++) {
+			LogEntry e = list.get(i);
+			System.out.println(e);
+			if (e.getLevel().getName().equals("SEVERE") 
+					&& e.getMessage().indexOf("Uncaught ") != -1
+					&& e.getMessage().indexOf(" Error:") != -1) {
+				System.out.println("*** Uncaught Error ***");
+				fail = true;
+			}		    			
+		}
+		if (fail) throw new Exception("Unhandled Exception! Check console log for details");		
 	}
 
 	private void info(WebElement element, String selector, boolean verify) throws Exception {
@@ -1051,6 +1073,8 @@ public class RunTests {
 				System.out.println();
 				return;
 			} catch(StaleElementReferenceException e) {
+				// If element has gone stale during a dump, ignore it
+				if (!verify) return;
 				// element has gone stale, re-select it
 				System.out.println("// EXCEPTION : StaleElementReference");
 			} catch(Exception e) {
@@ -1160,7 +1184,7 @@ public class RunTests {
 	
 	private void sleepAndReselect(int ms) throws Exception {
 		long waitTimer = (_waitFor - (new Date()).getTime());
-		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "]");
+		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + context.getId());
 		if (waitTimer < -(ms*2)) {
 			System.out.println("AUTO WAIT FOR 1s");
 			_waitFor = (new Date()).getTime() + 1000;
