@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.zip.CRC32;
 
@@ -22,6 +23,7 @@ import org.openqa.selenium.By;
 
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.InvalidElementStateException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -47,6 +49,7 @@ public class RunTests {
 		None, Field, Select, Script, XPath
 	}
 	ChromeOptions options = null;
+	Map<String, Object> prefs = null;
 	ChromeDriver driver = null;
 	RemoteWebElement context = null;
 	String selector = null;
@@ -300,6 +303,33 @@ public class RunTests {
 				System.out.print(' ');
 				System.out.print(tokenizer.sval);
 				
+				if (tokenizer.sval.equals("prefs")) {
+					tokenizer.nextToken();
+					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+						System.out.print(' ');
+						System.out.print(tokenizer.sval);
+						String pref = tokenizer.sval;
+						tokenizer.nextToken();
+						System.out.print(' ');
+						if (_skip) return;
+						if (null == options) options = new ChromeOptions();
+						if (null == prefs) prefs = new HashMap<String, Object>();
+						switch(tokenizer.ttype) {
+						case StreamTokenizer.TT_WORD:
+						case '"':
+							System.out.println(tokenizer.sval);
+							prefs.put(pref, tokenizer.sval);
+							return;
+						case StreamTokenizer.TT_NUMBER:
+							System.out.println(tokenizer.nval);
+							prefs.put(pref, tokenizer.nval);
+							return;
+						}
+					}
+					System.out.println();
+					throw new Exception("browser option command argument missing");
+				}
+				
 				if (tokenizer.sval.equals("option")) {
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {		// expect a quoted string
@@ -319,8 +349,11 @@ public class RunTests {
 					if (null == driver) {
 						// https://sites.google.com/a/chromium.org/chromedriver/capabilities
 						DesiredCapabilities capabilities = DesiredCapabilities.chrome();
-						if (null != options) capabilities.setCapability(ChromeOptions.CAPABILITY, options);
 						LoggingPreferences logs = new LoggingPreferences();
+						if (null != options) {
+							if (null != prefs) options.setExperimentalOption("prefs", prefs);
+							capabilities.setCapability(ChromeOptions.CAPABILITY, options);
+						}
 						logs.enable(LogType.BROWSER, Level.ALL);
 						capabilities.setCapability(CapabilityType.LOGGING_PREFS, logs);
     					driver = new ChromeDriver(capabilities);
@@ -477,7 +510,10 @@ public class RunTests {
 				while ((line = reader.readLine()) != null) {
 					System.out.println(line);
 				}
-				process.waitFor();
+				int exitStatus = process.waitFor();
+				if (exitStatus != 0) {
+					throw new Exception("exec command returned failure status " + exitStatus);
+				}
 				return;
 			}
 			System.out.println();
@@ -506,7 +542,10 @@ public class RunTests {
 				while ((line = reader.readLine()) != null) {
 					s += line + "\n";
 				}
-				process.waitFor();
+				int exitStatus = process.waitFor();
+				if (exitStatus != 0) {
+					throw new Exception("exec-include command returned failure status " + exitStatus);
+				}
 				if (s.length() > 0) {
 					runString(s,file,tokenizer.sval);
 				}
@@ -1167,7 +1206,11 @@ public class RunTests {
 					// element has gone stale, re-select it
 					System.out.println("// EXCEPTION : StaleElementReference");
 					e = se;
+				} catch(InvalidElementStateException is) {
+					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage());
+					e = is;					
 				} catch(Exception ex) {
+					System.out.println("// EXCEPTION : " + ex.getMessage());
 					e = ex;
 				}
 				sleepAndReselect(100);
