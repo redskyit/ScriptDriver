@@ -1226,6 +1226,7 @@ public class RunTests {
 	}
 	
 	private void sleepAndReselect(int ms) throws Exception {
+		if (autolog) dumpLog();
 		long waitTimer = (_waitFor - (new Date()).getTime());
 		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + context.getId());
 		if (waitTimer < -(ms*2)) {
