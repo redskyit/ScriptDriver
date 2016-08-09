@@ -63,6 +63,7 @@ public class RunTests {
 	private boolean _not;
 	HashMap<String, String> aliases = new HashMap<String,String>();
 	private boolean autolog = false;
+	private Dimension chrome = new Dimension(0,0);
 	
     public RunTests() throws IOException {
 	}
@@ -391,6 +392,31 @@ public class RunTests {
 					return;
 				}
 				
+				if (tokenizer.sval.equals("chrome")) {
+					int w = 0, h = 0;
+					tokenizer.nextToken();
+					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+						w = (int) tokenizer.nval;
+						System.out.print(' ');
+						System.out.print(w);
+						tokenizer.nextToken();
+						if (tokenizer.ttype == ',') {
+							tokenizer.nextToken();
+							System.out.print(',');
+							if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+								h = (int) tokenizer.nval;
+								System.out.print(h);
+								System.out.println();
+								if (!_skip) {
+									this.chrome = new Dimension(w,h);
+								}
+								return;
+							}
+						}
+					}
+					throw new Exception("browser chrome arguments error at line " + tokenizer.lineno());
+				}
+				
 				if (tokenizer.sval.equals("size")) {
 					int w = 0, h = 0;
 					tokenizer.nextToken();
@@ -406,7 +432,12 @@ public class RunTests {
 								h = (int) tokenizer.nval;
 								System.out.print(h);
 								System.out.println();
-								if (!_skip) driver.manage().window().setSize(new Dimension(w,h));
+								if (!_skip) {
+									Dimension size = new Dimension(this.chrome.width + w, this.chrome.height + h);
+									System.out.println("// chrome " + this.chrome.toString());
+									System.out.println("// size with chrome " + size.toString());
+									driver.manage().window().setSize(size);
+								}
 								return;
 							}
 						}
@@ -709,6 +740,7 @@ public class RunTests {
 
 		if (cmd.equals("click")) {
 			System.out.println();
+			int retryClick = 0;
 			if (null == context) throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
 			do {
 				try {
@@ -723,7 +755,11 @@ public class RunTests {
 					System.out.println("// EXCEPTION : WebDriverException");	
 					// Try and auto-recover by scrolling this element into view
 					scrollContextIntoView(context);
+				} catch(Exception e3) {
+					System.out.println("// EXCEPTION : " + e3.getMessage());
+					if (retryClick++ > 3) throw e3;
 				}
+				System.out.println("DEBUG: calling sleepAndReselect(100) _waitFor = " + _waitFor);
 				sleepAndReselect(100);
 			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
 			info(context, contextSelector, false);
@@ -1225,7 +1261,7 @@ public class RunTests {
 		Sleeper.sleepTight(ms);
 	}
 	
-	private void sleepAndReselect(int ms) throws Exception {
+	private boolean sleepAndReselect(int ms) throws Exception {
 		if (autolog) dumpLog();
 		long waitTimer = (_waitFor - (new Date()).getTime());
 		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + context.getId());
@@ -1251,11 +1287,14 @@ public class RunTests {
 			}
 		} catch(NoSuchElementException e2) {
 			// element has gone stale, re-select it
-			System.out.println("// EXCEPTION : NoSuchElement");
+			System.out.println("// SLEEPANDRESELECT: EXCEPTION : NoSuchElement");
 		} catch (Exception e) {
+			System.out.println("// SLEEPANDRESELECT: EXCEPTION : " + e.getMessage());
 			throw e;
 		}
-		System.out.println("// RESELECTED " + selector);
+		System.out.println("// SLEEPANDRESELECT: RESELECTED " + selector + " SLEEP 100ms");
+		Sleeper.sleepTight(100);  // small delay
+		return true;
 	}
 
 	private void xpathContext(StreamTokenizer tokenizer) throws Exception {
