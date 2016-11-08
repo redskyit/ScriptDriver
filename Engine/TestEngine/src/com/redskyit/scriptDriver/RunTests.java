@@ -57,6 +57,7 @@ public class RunTests {
 	String contextSelector = null;
 	ContextType ctype = ContextType.None;
 	private long _waitFor = 0;
+	private long _defaultWaitFor = 5000;
 	private boolean _if;
 	private boolean _test;
 	private boolean _skip;
@@ -64,6 +65,67 @@ public class RunTests {
 	HashMap<String, String> aliases = new HashMap<String,String>();
 	private boolean autolog = false;
 	private Dimension chrome = new Dimension(0,0);
+	
+	@SuppressWarnings("serial")
+	public class RetryException extends Exception {
+		public RetryException(String message) {
+			super(message);
+		}
+	};
+	
+	abstract class WaitFor {
+		public WaitFor(String cmd, StreamTokenizer tokenizer, boolean requiresContext) throws Exception {
+			if (requiresContext && null == context) {
+				throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
+			}
+			int retry = 0;
+			long now = 0;
+			do {
+				try {
+					this.run();
+					return;
+				} catch(StaleElementReferenceException e) {
+					// element has gone stale, re-select it
+					System.out.println("// EXCEPTION : StaleElementReference : " + e.getMessage());
+					retry++;
+				} catch(InvalidElementStateException is) {
+					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage());
+					scrollContextIntoView(context);
+					retry++;
+				} catch(WebDriverException e2) {
+					System.out.println("// EXCEPTION : WebDriverException : " + e2.getMessage());	
+					// Try and auto-recover by scrolling this element into view
+					scrollContextIntoView(context);
+					retry++;
+				} catch(RetryException r) {
+					System.out.println("// EXCEPTION : RetryException : " + r.getMessage());	
+					// Try and auto-recover by scrolling this element into view
+					retry++;
+				} catch(Exception e3) {
+					System.out.println("// EXCEPTION : " + e3.getMessage());
+					if (retry++ > 3) this.fail(e3);
+				}
+				// attempt to recover
+				now = (new Date()).getTime();
+				System.out.println(now + ": DEBUG: retry=" + retry + " calling sleepAndReselect(100) _waitFor = " + _waitFor);
+				if (retry == 1 && now >= _waitFor) {
+					System.out.println("// Wait timer already expired, apply default wait timer");
+					System.out.println("wait " + (_defaultWaitFor*1.0)/1000.0);
+					_waitFor = (long) now + _defaultWaitFor;
+				}
+				sleepAndReselect(100);
+			} while (_waitFor > 0 && now < _waitFor);
+
+			// action failed
+			info(context, contextSelector, false);
+			_waitFor = 0;				// wait timer expired
+			this.fail(new Exception(cmd + " failed at line " + tokenizer.lineno()));
+		}
+		protected abstract void run() throws Exception;
+		protected void fail(Exception e) throws Exception {
+			throw e;
+		}
+	}
 	
     public RunTests() throws IOException {
 	}
@@ -288,14 +350,14 @@ public class RunTests {
 		return args.get();
 	}
 
-	private void runCommand(StreamTokenizer tokenizer, File file, String source) throws Exception {
+	private void runCommand(final StreamTokenizer tokenizer, File file, String source) throws Exception {
 		// Automatic log dumping
 		if (autolog && null != driver) {
 			dumpLog();
 		}
 		
 		String cmd = tokenizer.sval;
-		System.out.printf("[%s,%d] ", source, tokenizer.lineno());
+		System.out.printf((new Date()).getTime() + ": [%s,%d] ", source, tokenizer.lineno());
 		System.out.print(tokenizer.sval);
 
 		if (cmd.equals("browser")) {
@@ -605,10 +667,33 @@ public class RunTests {
 					autolog = onoff.equals("on") || onoff.equals("true");
 					return;
 				}
+				System.out.println();
 				throw new Exception("invalid log action");
 			}
 			System.out.println();
 			throw new Exception("log argument should be string or a word");
+		}
+		
+		if (cmd.equals("default")) {
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+				String action = tokenizer.sval;
+				System.out.print(' ');
+				System.out.print(action);
+				if (action.equals("wait")) {
+					tokenizer.nextToken();
+					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
+						System.out.print(' ');
+						System.out.println(tokenizer.nval);
+						_defaultWaitFor = (int) (tokenizer.nval * 1000.0);
+					}
+					return;
+				}
+				System.out.println();
+				throw new Exception("invalid default property");
+			}
+			System.out.println();
+			throw new Exception("default argument should be string or a word");
 		}
 				
 		if (null == driver) {
@@ -634,7 +719,7 @@ public class RunTests {
 				if (_skip) return;
 				System.out.print(' ');
 				System.out.println(tokenizer.sval);
-				this.selectContext(tokenizer);
+				selectContext(tokenizer);
 				return;
 			}
 			System.out.println();
@@ -705,7 +790,7 @@ public class RunTests {
 				if (_skip) return;
 				System.out.print(' ');
 				System.out.println(tokenizer.sval);
-				this.setContextValue(tokenizer, cmd.equals("set"));
+				this.setContextValue(cmd, tokenizer, cmd.equals("set"));
 				return;
 			}
 			System.out.println();
@@ -718,7 +803,7 @@ public class RunTests {
 				if (_skip) return;
 				System.out.print(' ');
 				System.out.println(tokenizer.sval);
-				this.testContextValue(tokenizer, false);
+				this.testContextValue(cmd, tokenizer, false);
 				return;
 			}
 			System.out.println();
@@ -731,7 +816,7 @@ public class RunTests {
 				if (_skip) return;
 				System.out.print(' ');
 				System.out.println(tokenizer.sval);
-				this.testContextValue(tokenizer, true);
+				this.testContextValue(cmd, tokenizer, true);
 				return;
 			}
 			System.out.println();
@@ -740,30 +825,13 @@ public class RunTests {
 
 		if (cmd.equals("click")) {
 			System.out.println();
-			int retryClick = 0;
-			if (null == context) throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
-			do {
-				try {
-					if (!_skip) {
-						context.click();
-					}
-					return;
-				} catch(StaleElementReferenceException e) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
-				} catch(WebDriverException e2) {
-					System.out.println("// EXCEPTION : WebDriverException");	
-					// Try and auto-recover by scrolling this element into view
-					scrollContextIntoView(context);
-				} catch(Exception e3) {
-					System.out.println("// EXCEPTION : " + e3.getMessage());
-					if (retryClick++ > 3) throw e3;
+			new WaitFor(cmd, tokenizer, true) {
+				@Override
+				protected void run() {
+					if (!_skip) context.click();
 				}
-				System.out.println("DEBUG: calling sleepAndReselect(100) _waitFor = " + _waitFor);
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			info(context, contextSelector, false);
-			throw new Exception("click failed at line " + tokenizer.lineno());
+			};
+			return;
 		}
 		
 		if (cmd.equals("scroll-into-view")) {
@@ -783,8 +851,12 @@ public class RunTests {
 
 		if (cmd.equals("clear")) {
 			System.out.println();
-			if (null == context) throw new Exception("clear command requires a field context at line " + tokenizer.lineno());
-			if (!_skip) context.clear();
+			new WaitFor(cmd, tokenizer, true) {
+				@Override
+				protected void run() {
+					if (!_skip) context.clear();
+				}
+			};
 			return;
 		}
 		
@@ -818,51 +890,47 @@ public class RunTests {
 		
 		if (cmd.equals("enabled")) {
 			System.out.println();
-			if (null == context) throw new Exception("enabled command requires a context at line " + tokenizer.lineno());
-			if (!_skip || context.isEnabled() != _not) {
-				_not = false;
-				return;
-			}
-			info(context, contextSelector, false);
-			throw new Exception("enablede  check failed " + tokenizer.lineno());
+			new WaitFor(cmd, tokenizer, true) {
+				@Override
+				protected void run() throws RetryException {
+					if (!_skip || context.isEnabled() != _not) {
+						_not = false;
+						return;
+					}
+					throw new RetryException("enabled check failed");
+				}
+			};
+			return;
 		}
 
 		if (cmd.equals("selected")) {
 			System.out.println();
-			if (null == context) throw new Exception("selected command requires a context at line " + tokenizer.lineno());
-			do {
-				try {
+			new WaitFor(cmd, tokenizer, true) {
+				@Override
+				protected void run() throws RetryException {
 					if (_skip || context.isSelected() != _not) {
 						_not = false;
 						return;
 					}
-				} catch(StaleElementReferenceException e) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
+					throw new RetryException("selected check failed");
 				}
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			info(context, contextSelector, false);
-			throw new Exception("selected check failed " + tokenizer.lineno());
+			};
+			return;
 		}
 		
 		if (cmd.equals("displayed")) {
 			System.out.println();
-			if (null == context) throw new Exception("displayed command requires a context at line " + tokenizer.lineno());
-			do {
-				try {
+			new WaitFor(cmd, tokenizer, true) {
+				@Override
+				protected void run() throws RetryException {
 					if (_skip || context.isDisplayed() != _not) {
 						_not = false;
 						return;
 					}
-				} catch(StaleElementReferenceException e) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
+					throw new RetryException("displayed check failed");
 				}
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			info(context, contextSelector, false);
-			throw new Exception("displayed check failed " + tokenizer.lineno());
+			};
+			return;
 		}
 		
 		if (cmd.equals("at")) {
@@ -886,22 +954,20 @@ public class RunTests {
 						y = (int) tokenizer.nval;
 						System.out.print(y);
 						System.out.println();
-						if (null == context) throw new Exception("at command requires a context at line " + tokenizer.lineno());
-						do {
-							try {
+						final int X = x;
+						final int Y = y;
+						new WaitFor(cmd, tokenizer, true) {
+							@Override
+							protected void run() throws RetryException {
 								Point loc = context.getLocation();
-								if (_skip || ((loc.x == x || x == -1) && loc.y == y) != _not) {
+								if (_skip || ((loc.x == X || X == -1) && loc.y == Y) != _not) {
 									_not = false;
 									return;
 								}
-							} catch(StaleElementReferenceException e) {
-								// element has gone stale, re-select it
-								System.out.println("// EXCEPTION : StaleElementReference");
+								throw new RetryException("location check failed");
 							}
-							sleepAndReselect(100);
-						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-						info(context, contextSelector, false);
-						throw new Exception("Location check failed at line " + tokenizer.lineno());
+						};
+						return;
 					}
 				}
 			}
@@ -936,22 +1002,21 @@ public class RunTests {
 						h = (int) tokenizer.nval;
 						System.out.print(h);
 						System.out.println();
-						if (null == context) throw new Exception("size command requires a context at line " + tokenizer.lineno());
-						do {
-							try {
+						final int MW = mw;
+						final int W = w;
+						final int H = h;
+						new WaitFor(cmd, tokenizer, true) {
+							@Override
+							protected void run() throws RetryException {
 								Dimension size = context.getSize();
-								if (_skip || ((mw == -1 || (size.width >= mw && size.width <= w)) && size.height == h) != _not) {
+								if (_skip || ((MW == -1 || (size.width >= MW && size.width <= W)) && size.height == H) != _not) {
 									_not = false;
 									return;
 								}
-							} catch(StaleElementReferenceException e) {
-								// element has gone stale, re-select it
-								System.out.println("// EXCEPTION : StaleElementReference");
+								throw new RetryException("size check failed");
 							}
-							sleepAndReselect(100);
-						} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-						info(context, contextSelector, false);
-						throw new Exception("Size check failed at line " + tokenizer.lineno());
+						};
+						return;
 					}
 				}
 			}
@@ -965,23 +1030,18 @@ public class RunTests {
 				System.out.print(' ');
 				System.out.print(tokenizer.sval);
 				System.out.println();
-				String tag = "unknown";
-				if (null == context) throw new Exception("tag command requires a context at line " + tokenizer.lineno());
-				do {
-					try {
-						tag = context.getTagName();
+				new WaitFor(cmd, tokenizer, true) {
+					@Override
+					protected void run() throws RetryException {
+						String tag = context.getTagName();
 						if (_skip || tokenizer.sval.equals(tag) != _not) {
 							_not = false;
 							return;
 						}
-					} catch(StaleElementReferenceException e) {
-						// element has gone stale, re-select it
-						System.out.println("// EXCEPTION : StaleElementReference");
+						throw new RetryException("tag \"" + tokenizer.sval + "\" check failed, tag is " + tag + " at line " + tokenizer.lineno());
 					}
-					sleepAndReselect(100);
-				} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-				info(context, contextSelector, false);
-				throw new Exception("tag \"" + tokenizer.sval + "\" check failed, tag is " + tag + " at line " + tokenizer.lineno());
+				};
+				return;
 			}
 			System.out.println();
 			throw new Exception("tag command has missing tag name at line " + tokenizer.lineno());
@@ -1181,12 +1241,13 @@ public class RunTests {
 		return s1.equals(s2);
 	}
 
-	private void testContextValue(StreamTokenizer tokenizer, boolean checksum) throws Exception {
-		String tagName = context.getTagName();
-		if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) { 
-			System.out.println("// Checking element value is equal to '" + tokenizer.sval + "'");
-			do {
-				try {
+	private void testContextValue(String cmd, final StreamTokenizer tokenizer, final boolean checksum) throws Exception {
+		new WaitFor(cmd, tokenizer, true) {
+			@Override
+			protected void run() throws RetryException {
+				String tagName = context.getTagName();
+				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
+					System.out.println("// Checking element value is equal to '" + tokenizer.sval + "'");
 					String value = context.getAttribute("value");
 					if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
 						_not = false;
@@ -1197,64 +1258,46 @@ public class RunTests {
 					} else {
 						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
 					}
-				} catch(StaleElementReferenceException e) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
+					throw new RetryException("value check failed");
+				} else {
+					System.out.println("// Checking element textContent is equal to '" + tokenizer.sval + "'");
+						String value = context.getText();
+						if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
+							_not = false;
+							return;
+						}
+						if (null == value) {
+							System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
+						} else {
+							System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
+						}
+						throw new RetryException("textContent check failed");
 				}
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			info(context, contextSelector, false);
-			throw new Exception("check value \"" + tokenizer.sval + "\" test failed for current field context at line " + tokenizer.lineno());
-		} else {
-			do {
-				try {
-					String value = context.getText();
-					if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
-						_not = false;
-						return;
-					}
-					if (null == value) {
-						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
-					} else {
-						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
-					}
-				} catch(StaleElementReferenceException e) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
-				}
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			info(context, contextSelector, false);
-			throw new Exception("check text " + tokenizer.sval + " test failed for current select context at line " + tokenizer.lineno());				
-		}
+			}
+			@Override
+			protected void fail(Exception e) throws Exception {
+				throw new Exception(e.getMessage() + ": " + tokenizer.sval + " test failed for current select context at line " + tokenizer.lineno());
+			}
+		};
 	}
 
-	private void setContextValue(StreamTokenizer tokenizer, boolean set) throws Exception {
-		Exception e;
-		String tagName = context.getTagName();
-		if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
-			do {
-				try {
+	private void setContextValue(String cmd, final StreamTokenizer tokenizer, final boolean set) throws Exception {
+		new WaitFor(cmd, tokenizer, true) {
+			@Override
+			protected void run() throws Exception {
+				final String tagName = context.getTagName();
+				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
 					if (set && !tagName.equals("select")) context.clear();
 					context.sendKeys(tokenizer.sval);
-					return;
-				} catch(StaleElementReferenceException se) {
-					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference");
-					e = se;
-				} catch(InvalidElementStateException is) {
-					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage());
-					e = is;					
-				} catch(Exception ex) {
-					System.out.println("// EXCEPTION : " + ex.getMessage());
-					e = ex;
+				} else {
+					throw new Exception("set cannot be used on a non-field context at line " + tokenizer.lineno());
 				}
-				sleepAndReselect(100);
-			} while (_waitFor > 0 && (new Date()).getTime() < _waitFor);
-			throw new Exception("could not send keys to element " + e.getMessage());
-		} else {
-			throw new Exception("set cannot be used on a non-field context at line " + tokenizer.lineno());
-		}
+			}
+			@Override
+			protected void fail(Exception e) throws Exception {
+				throw new Exception("could not send keys to element: " + e.getMessage());
+			}
+		};
 	}
 	
 	private void sleep(int ms) {
@@ -1265,10 +1308,10 @@ public class RunTests {
 		if (autolog) dumpLog();
 		long waitTimer = (_waitFor - (new Date()).getTime());
 		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + context.getId());
-		if (waitTimer < -(ms*2)) {
-			System.out.println("AUTO WAIT FOR 1s");
-			_waitFor = (new Date()).getTime() + 1000;
-		}
+//		if (waitTimer < -(ms*2)) {
+//			System.out.println("AUTO WAIT FOR 1s");
+//			_waitFor = (new Date()).getTime() + 1000;
+//		}
 		Sleeper.sleepTight(ms);
 		try {
 			if (ctype == ContextType.XPath || ctype == ContextType.Field) {
@@ -1300,6 +1343,7 @@ public class RunTests {
 	private void xpathContext(StreamTokenizer tokenizer) throws Exception {
 		Exception e;
 		ctype = ContextType.None;
+		selector = null;
 		do {
 			try {
 				context = (RemoteWebElement) driver.findElement(By.xpath(tokenizer.sval));
@@ -1332,7 +1376,7 @@ public class RunTests {
 		do {
 			try {
 				context = (RemoteWebElement) driver.findElement(By.cssSelector(tokenizer.sval));
-				if (_not) { 
+				if (_not) {
 					_test = _not = false; 
 					throw new Exception("not selector " + tokenizer.sval + " is invalid on line " + tokenizer.lineno()); 
 				}
@@ -1376,7 +1420,7 @@ public class RunTests {
 				sleep(100);
 			}
 		} while (this._waitFor > 0 && (new Date()).getTime() < this._waitFor);
-		this._waitFor = 0;
+		_waitFor = 0;
 		_test = false;
 		if (!_if) {
 			if (_not) { _test = true; context = null; _not = false; return; }
@@ -1393,6 +1437,5 @@ public class RunTests {
     			throw e;
             }
         }
-
 	}
 }
