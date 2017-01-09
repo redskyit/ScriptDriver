@@ -1050,7 +1050,7 @@ public class RunTests {
 			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 				System.out.print(' ');
 				System.out.println(tokenizer.nval);
-				Sleeper.sleepTight((long) tokenizer.nval * 1000);
+				Sleeper.sleepTight((long) (tokenizer.nval * 1000));
 				return;
 			}
 			System.out.println();
