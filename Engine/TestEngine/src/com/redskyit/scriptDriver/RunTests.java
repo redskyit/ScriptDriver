@@ -86,23 +86,23 @@ public class RunTests {
 					return;
 				} catch(StaleElementReferenceException e) {
 					// element has gone stale, re-select it
-					System.out.println("// EXCEPTION : StaleElementReference : " + e.getMessage());
+					System.out.println("// EXCEPTION : StaleElementReference : " + e.getMessage().split("\n")[0]);
 					retry++;
 				} catch(InvalidElementStateException is) {
-					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage());
+					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage().split("\n")[0]);
 					scrollContextIntoView(context);
 					retry++;
 				} catch(WebDriverException e2) {
-					System.out.println("// EXCEPTION : WebDriverException : " + e2.getMessage());	
+					System.out.println("// EXCEPTION : WebDriverException : " + e2.getMessage().split("\n")[0]);	
 					// Try and auto-recover by scrolling this element into view
 					scrollContextIntoView(context);
 					retry++;
 				} catch(RetryException r) {
-					System.out.println("// EXCEPTION : RetryException : " + r.getMessage());	
+					System.out.println("// EXCEPTION : RetryException : " + r.getMessage().split("\n")[0]);	
 					// Try and auto-recover by scrolling this element into view
 					retry++;
 				} catch(Exception e3) {
-					System.out.println("// EXCEPTION : " + e3.getMessage());
+					System.out.println("// EXCEPTION : " + e3.getMessage().split("\n")[0]);
 					if (retry++ > 3) this.fail(e3);
 				}
 				// attempt to recover
@@ -110,7 +110,7 @@ public class RunTests {
 				System.out.println(now + ": DEBUG: retry=" + retry + " calling sleepAndReselect(100) _waitFor = " + _waitFor);
 				if (retry == 1 && now >= _waitFor) {
 					System.out.println("// Wait timer already expired, apply default wait timer");
-					System.out.println("wait " + (_defaultWaitFor*1.0)/1000.0);
+					System.out.println("// wait " + (_defaultWaitFor*1.0)/1000.0);
 					_waitFor = (long) now + _defaultWaitFor;
 				}
 				sleepAndReselect(100);
@@ -1110,7 +1110,7 @@ public class RunTests {
 			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 				System.out.print(' ');
 				System.out.println(tokenizer.nval);
-				Sleeper.sleepTight((long) tokenizer.nval * 1000);
+				Sleeper.sleepTight((long) (tokenizer.nval * 1000));
 				return;
 			}
 			System.out.println();
@@ -1247,7 +1247,7 @@ public class RunTests {
 			protected void run() throws RetryException {
 				String tagName = context.getTagName();
 				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
-					System.out.println("// Checking element value is equal to '" + tokenizer.sval + "'");
+					System.out.println("// Checking element value is " + (_not ? "NOT " : "") + " equal to '" + tokenizer.sval + "'");
 					String value = context.getAttribute("value");
 					if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
 						_not = false;
@@ -1256,11 +1256,11 @@ public class RunTests {
 					if (null == value) {
 						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
 					} else {
-						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
+						System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES " + (_not ? "" : "NOT ") + " MATCH '" + value + "'");
 					}
 					throw new RetryException("value check failed");
 				} else {
-					System.out.println("// Checking element textContent is equal to '" + tokenizer.sval + "'");
+					System.out.println("// Checking element textContent is " + (_not ? "NOT " : "") + "equal to '" + tokenizer.sval + "'");
 						String value = context.getText();
 						if (_not != (null != value && compareStrings(value, tokenizer.sval, checksum))) {
 							_not = false;
@@ -1269,7 +1269,7 @@ public class RunTests {
 						if (null == value) {
 							System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' BUT VALUE IS NULL");				
 						} else {
-							System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES NOT MATCH '" + value + "'");
+							System.out.println("// CHECK FAIL: EXPECTED '" + tokenizer.sval + "' WHICH DOES " + (_not ? "" : "NOT ") + " MATCH '" + value + "'");
 						}
 						throw new RetryException("textContent check failed");
 				}
