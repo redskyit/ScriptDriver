@@ -65,6 +65,9 @@ public class RunTests {
 	HashMap<String, String> aliases = new HashMap<String,String>();
 	private boolean autolog = false;
 	private Dimension chrome = new Dimension(0,0);
+	private HashMap<String, ArrayList<Object>> stacks = new HashMap<String, ArrayList<Object>>();
+
+	private static String version = "0.2";
 	
 	@SuppressWarnings("serial")
 	public class RetryException extends Exception {
@@ -359,6 +362,12 @@ public class RunTests {
 		String cmd = tokenizer.sval;
 		System.out.printf((new Date()).getTime() + ": [%s,%d] ", source, tokenizer.lineno());
 		System.out.print(tokenizer.sval);
+
+		if (cmd.equals("version")) {
+			System.out.println();
+			System.out.println("ScriptDriver version " + version);
+			return;
+		}
 
 		if (cmd.equals("browser")) {
 			tokenizer.nextToken();
@@ -695,7 +704,50 @@ public class RunTests {
 			System.out.println();
 			throw new Exception("default argument should be string or a word");
 		}
+
+		if (cmd.equals("push")) {
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+				String action = tokenizer.sval;
+				System.out.print(' ');
+				System.out.print(action);
+				ArrayList<Object> stack = stacks.get(action);
+				if (null == stack) {
+					stack = new ArrayList<Object>();
+					stacks.put(action, stack);
+				}
+				if (action.equals("wait")) {
+					stack.add(new Long(_waitFor));
+					System.out.println();
+					return;
+				}
+			}
+			System.out.println();
+			throw new Error("Invalid push argument");
+		}
 				
+		if (cmd.equals("pop")) {
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+				String action = tokenizer.sval;
+				System.out.print(' ');
+				System.out.print(action);
+				ArrayList<Object> stack = stacks.get(action);
+				if (null == stack || stack.isEmpty()) {
+					throw new Error("pop called without corresponding push");
+				}
+				if (action.equals("wait")) {
+					int index = stack.size()-1;
+					_waitFor = (Long) stack.get(index);
+					stack.remove(index);
+					System.out.println();
+					return;
+				}
+			}
+			System.out.println();
+			throw new Error("Invalid push argument");
+		}
+
 		if (null == driver) {
 			throw new Exception("browser start must be used before attempt to interract with the browser");
 		}
@@ -1158,6 +1210,7 @@ public class RunTests {
 			return;
 		}
 		
+		System.out.println();
 		throw new Exception("unrecognised command, " + cmd);
 	}
 
