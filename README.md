@@ -57,7 +57,7 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
 
 The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
 
@@ -78,4 +78,4 @@ Windows:
 ## Documentation
 ### Language Syntax
 
-https://github.com/redskyit/ScriptDriver/wiki/Language-Syntax
+https://github.com/redskyit/ScriptDriver/wiki/Language-Syntax-(v0.2)
