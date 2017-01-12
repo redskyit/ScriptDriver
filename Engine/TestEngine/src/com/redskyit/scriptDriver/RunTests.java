@@ -45,17 +45,16 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.RemoteWebElement;
 
 public class RunTests {
-	enum ContextType {
-		None, Field, Select, Script, XPath
-	}
-	
-	private class Script {
+
+	// Execution selection represents an executable chunk of source code, be that a script from file
+	// or the body of a function/alias.  An execution selection has a body and optionally some arguments.
+	private class ExecutionContext {
 		private List<String> params = null;
 		private String body = null;
 		private List<Object> args = null;
-		public Script() {
+		public ExecutionContext() {
 		}
-		public Script(List<String> params, String body) {
+		public ExecutionContext(List<String> params, String body) {
 			this.params = params;
 			this.body = body;
 			this.args = new ArrayList<Object>();
@@ -120,22 +119,26 @@ public class RunTests {
 			if (args != null) args.clear();			
 		}
 	};
+
+	enum SelectionType {
+		None, Field, Select, Script, XPath
+	};
 	
 	ChromeOptions options = null;
 	Map<String, Object> prefs = null;
 	ChromeDriver driver = null;
-	RemoteWebElement context = null;
-	String selector = null;
 	Actions actions = null;
-	String contextSelector = null;
-	ContextType ctype = ContextType.None;
+	RemoteWebElement selection = null;
+	SelectionType stype = SelectionType.None;
+	String selector = null;
+	String selectionCommand = null;
 	private long _waitFor = 0;
 	private long _defaultWaitFor = 5000;
 	private boolean _if;
 	private boolean _test;
 	private boolean _skip;
 	private boolean _not;
-	HashMap<String, Script> aliases = new HashMap<String,Script>();
+	HashMap<String, ExecutionContext> functions = new HashMap<String,ExecutionContext>();
 	private boolean autolog = false;
 	private Dimension chrome = new Dimension(0,0);
 	private HashMap<String, ArrayList<Object>> stacks = new HashMap<String, ArrayList<Object>>();
@@ -151,8 +154,8 @@ public class RunTests {
 	
 	abstract class WaitFor {
 		public WaitFor(String cmd, StreamTokenizer tokenizer, boolean requiresContext) throws Exception {
-			if (requiresContext && null == context) {
-				throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
+			if (requiresContext && null == selection) {
+				throw new Exception(cmd + " command requires a field selection at line " + tokenizer.lineno());
 			}
 			int retry = 0;
 			long now = 0;
@@ -166,12 +169,12 @@ public class RunTests {
 					retry++;
 				} catch(InvalidElementStateException is) {
 					System.out.println("// EXCEPTION : InvalidElementStateException : " + is.getMessage().split("\n")[0]);
-					scrollContextIntoView(context);
+					scrollContextIntoView(selection);
 					retry++;
 				} catch(WebDriverException e2) {
 					System.out.println("// EXCEPTION : WebDriverException : " + e2.getMessage().split("\n")[0]);	
 					// Try and auto-recover by scrolling this element into view
-					scrollContextIntoView(context);
+					scrollContextIntoView(selection);
 					retry++;
 				} catch(RetryException r) {
 					System.out.println("// EXCEPTION : RetryException : " + r.getMessage().split("\n")[0]);	
@@ -193,7 +196,7 @@ public class RunTests {
 			} while (_waitFor > 0 && now < _waitFor);
 
 			// action failed
-			info(context, contextSelector, false);
+			info(selection, selectionCommand, false);
 			_waitFor = 0;				// wait timer expired
 			this.fail(new Exception(cmd + " failed at line " + tokenizer.lineno()));
 		}
@@ -213,12 +216,12 @@ public class RunTests {
 	}
 	
 	public int run(String[] args) {
-		File script = null;
+		File source = null;
 		String onexit = "--onsuccess";
 		int exitstatus = 0;
     	try {
     		for (int i = 0; i < args.length; i++) {
-				script = runScript(args[i]); 
+				source = runScript(args[i]); 
 			}
     	} catch (Exception e) {
     		e.printStackTrace();
@@ -229,7 +232,7 @@ public class RunTests {
     	// If we have an onexit handler to call, then run it now
     	if (null != onexit) {
     		try {
-				runAlias(onexit, script, null);
+				executeFunction(onexit, source, null);
 			} catch (Exception e) {
 				e.printStackTrace();
 				exitstatus = 2;
@@ -274,18 +277,19 @@ public class RunTests {
 		StreamTokenizer tokenizer = openScript(file);
 		while (tokenizer.nextToken() != StreamTokenizer.TT_EOF) {
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD) {
-				runCommand(tokenizer, file, file.getName(), new Script());
+				runCommand(tokenizer, file, file.getName(), new ExecutionContext());
 			}
 		}
 		return file;
 	}
 	
-	private boolean runAlias(String name, File file, StreamTokenizer parent) throws Exception {
-		Script script = aliases.get(name);
-		if (null != script) {
-			List<String> params = script.getParams();
+	private boolean executeFunction(String name, File file, StreamTokenizer parent) throws Exception {
+		ExecutionContext context = functions.get(name);
+		if (null != context) {
+			// If this context has parameters then gather argument values
+			List<String> params = context.getParams();
 			if (null != params && params.size() > 0) {
-				script.clearArgs();
+				context.clearArgs();
 				int count = params.size();
 				while (count-- > 0) {
 					// get argument
@@ -294,22 +298,24 @@ public class RunTests {
 					switch(parent.ttype) {
 					case StreamTokenizer.TT_NUMBER:
 						System.out.print(parent.nval);
-						script.addArg(parent.nval);
+						context.addArg(parent.nval);
 						break;
 					default:
 						System.out.print(parent.sval);
-						script.addArg(parent.sval);
+						context.addArg(parent.sval);
 						break;
 					}
 				}
 			}
 			System.out.println();
-			String code = script.getBody();
+			
+			// Get function body and execute it
+			String code = context.getBody();
 			if (null != code) {
 				StreamTokenizer tokenizer = openString(code);
 				while (tokenizer.nextToken() != StreamTokenizer.TT_EOF) {
 					if (tokenizer.ttype == StreamTokenizer.TT_WORD) {
-						runCommand(tokenizer, file, name, script);
+						runCommand(tokenizer, file, name, context);
 					}
 				}		
 				return true;
@@ -318,8 +324,8 @@ public class RunTests {
 		return false;
 	}
 	
-	private boolean runString(String script, File file, String cmd) throws Exception {
-		StreamTokenizer tokenizer = openString(script);
+	private boolean runString(String source, File file, String cmd) throws Exception {
+		StreamTokenizer tokenizer = openString(source);
 		while (tokenizer.nextToken() != StreamTokenizer.TT_EOF) {
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD) {
 				runCommand(tokenizer, file, cmd, null);
@@ -330,11 +336,11 @@ public class RunTests {
 	
 	// Argument parsing: { token token { token token } token }
 	
-	private interface ArgHandler {
-		void processArg(StreamTokenizer tokenizer, String arg) throws IOException;
+	private interface BlockHandler {
+		void parseToken(StreamTokenizer tokenizer, String arg) throws IOException;
 	}
 
-	private void parseArgs(StreamTokenizer tokenizer, ArgHandler handler) throws Exception {
+	private void parseBlock(StreamTokenizer tokenizer, BlockHandler handler) throws Exception {
 		tokenizer.nextToken();
 		if (tokenizer.ttype == '{') {
 			int braceLevel = 1;
@@ -360,7 +366,7 @@ public class RunTests {
 					break;
 				case '}': 
 					if (--braceLevel == 0) {
-						System.out.println("}");
+						System.out.print("}");
 						tokenizer.eolIsSignificant(false);
 						return;
 					}
@@ -385,7 +391,7 @@ public class RunTests {
 					arg = tokenizer.sval;
 				}
 				System.out.print(arg);
-				handler.processArg(tokenizer, arg);
+				handler.parseToken(tokenizer, arg);
 				tokenizer.nextToken();
 			}
 			System.out.println();			
@@ -394,16 +400,16 @@ public class RunTests {
 		tokenizer.pushBack();		// no arguments
 	}
 	
-	private class ArgString implements ArgHandler {
+	private class Block implements BlockHandler {
 		char sep = ' ';
 		char isep = sep;
 		boolean quoteWords = false;
 		String args = null;
-		public ArgString(char sep, boolean quoteWords) {
+		public Block(char sep, boolean quoteWords) {
 			this.isep = this.sep = sep;
 			this.quoteWords = quoteWords;
 		}
-		public void processArg(StreamTokenizer tokenizer, String arg) {
+		public void parseToken(StreamTokenizer tokenizer, String arg) {
 			if (quoteWords && tokenizer.ttype == StreamTokenizer.TT_WORD) {
 				arg = '"' + arg + '"';
 			}
@@ -426,9 +432,9 @@ public class RunTests {
 		}
 	};
 
-	private class ArgArray implements ArgHandler {
+	private class ArgArray implements BlockHandler {
 		List<String> args = new ArrayList<String>();
-		public void processArg(StreamTokenizer tokenizer, String arg) {
+		public void parseToken(StreamTokenizer tokenizer, String arg) {
 			if (tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
 				arg = arg.substring(1,arg.length()-1);
 			}
@@ -439,15 +445,15 @@ public class RunTests {
 		}
 	};
 
-	private String getArgs(StreamTokenizer tokenizer, char sep, boolean quoteWords) throws Exception {
-		ArgString args = new ArgString(sep, quoteWords);
-		parseArgs(tokenizer, args);
-		return args.get();
+	private String getBlock(StreamTokenizer tokenizer, char sep, boolean quoteWords) throws Exception {
+		Block block = new Block(sep, quoteWords);
+		parseBlock(tokenizer, block);
+		return block.get();
 	}
 
 	private List<String> getArgs(StreamTokenizer tokenizer) throws Exception {
 		ArgArray args = new ArgArray();
-		parseArgs(tokenizer, args);
+		parseBlock(tokenizer, args);
 		return args.get();
 	}
 	
@@ -468,7 +474,7 @@ public class RunTests {
 				switch(tokenizer.ttype){ 
 				case ',': arg = ","; break;
 				case ')':
-					System.out.println(")");
+					System.out.print(")");
 					return;
 				default:
 					arg = tokenizer.sval;
@@ -503,7 +509,7 @@ public class RunTests {
 		return params.get();
 	}
 	
-	private void runCommand(final StreamTokenizer tokenizer, File file, String source, Script script) throws Exception {
+	private void runCommand(final StreamTokenizer tokenizer, File file, String source, ExecutionContext script) throws Exception {
 		// Automatic log dumping
 		if (autolog && null != driver) {
 			dumpLog();
@@ -514,6 +520,7 @@ public class RunTests {
 		System.out.print(tokenizer.sval);
 		
 		if (cmd.equals("version")) {
+			// HELP: version
 			System.out.println();
 			System.out.println("ScriptDriver version " + version);
 			return;
@@ -526,6 +533,7 @@ public class RunTests {
 				System.out.print(tokenizer.sval);
 				
 				if (tokenizer.sval.equals("prefs")) {
+					// HELP: browser prefs ...
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 						System.out.print(' ');
@@ -553,6 +561,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("option")) {
+					// HELP: browser option ...
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {		// expect a quoted string
 						System.out.print(' ');
@@ -567,6 +576,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("start")) {
+					// HELP: browser start
 					System.out.println();
 					if (null == driver) {
 						// https://sites.google.com/a/chromium.org/chromedriver/capabilities
@@ -591,6 +601,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("get")) {
+					// HELP: browser get "url"
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {		// expect a quoted string
 						System.out.print(' ');
@@ -605,6 +616,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("close")) {
+					// HELP: browser close
 					System.out.println();
 					if (!_skip) {
 						driver.close();
@@ -614,6 +626,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("chrome")) {
+					// HELP: browser chrome <width>,<height>
 					int w = 0, h = 0;
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
@@ -639,6 +652,7 @@ public class RunTests {
 				}
 				
 				if (tokenizer.sval.equals("size")) {
+					// HELP: browser size <width>,<height>
 					int w = 0, h = 0;
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
@@ -666,6 +680,7 @@ public class RunTests {
 					throw new Exception("browser size arguments error at line " + tokenizer.lineno());
 				}
 				if (tokenizer.sval.equals("pos")) {
+					// HELP: browser pos <x>,<y>
 					int x = 0, y = 0;
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
@@ -692,7 +707,9 @@ public class RunTests {
 			throw new Exception("browser missing command argument at line " + tokenizer.lineno());
 		}
 		
-		if (cmd.equals("alias")) {
+		if (cmd.equals("alias") || cmd.equals("function")) {
+			// HELP: alias <name> { body }
+			// HELP: function <name> (param, ...) { body }
 			String name = null, args = null;
 			List<String> params = null;
 			tokenizer.nextToken();
@@ -701,7 +718,7 @@ public class RunTests {
 				System.out.print(tokenizer.sval);
 				name = tokenizer.sval;
 				params = getParams(tokenizer);
-				args = getArgs(tokenizer, ' ', false);
+				args = getBlock(tokenizer, ' ', false);
 				System.out.println();
 				if (_skip) return;
 				addAlias(name, params, args);		// add alias
@@ -712,13 +729,14 @@ public class RunTests {
 		}
 
 		if (cmd.equals("while")) {
-			String args = null;
-			args = getArgs(tokenizer, ' ', false);
+			// HELP: while { block }
+			String block = null;
+			block = getBlock(tokenizer, ' ', false);
 			if (_skip) return;
 			boolean exitloop = false;
 			while (!exitloop) {
 				try {
-					runString(args, file, "while");
+					runString(block, file, "while");
 				} catch(Exception e) {
 					exitloop = true;
 				}
@@ -727,6 +745,7 @@ public class RunTests {
 		}
 
 		if (cmd.equals("include")) {
+			// HELP: include <script>
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				if (_skip) return;
@@ -744,6 +763,7 @@ public class RunTests {
 		}
 		
 		if (cmd.equals("exec")) {
+			// HELP: exec <command> { args ... }
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String command = tokenizer.sval;
@@ -776,6 +796,7 @@ public class RunTests {
 		}
 
 		if (cmd.equals("exec-include")) {
+			// HELP: exec-include <command> { args ... }
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String command = tokenizer.sval;
@@ -817,11 +838,14 @@ public class RunTests {
 				System.out.print(' ');
 				System.out.print(action);
 				if (action.equals("dump")) {
+					// HELP: log dump
 					System.out.println("");
 					if (driver != null) dumpLog();
 					return;
 				}
 				if (action.equals("auto")) {
+					// HELP: log auto <on|off>
+					// HELP: log auto <true|false>
 					tokenizer.nextToken();
 					String onoff = tokenizer.sval;
 					System.out.print(' ');
@@ -837,6 +861,7 @@ public class RunTests {
 		}
 		
 		if (cmd.equals("default")) {
+			// HELP: default wait <seconds>
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String action = tokenizer.sval;
@@ -859,6 +884,7 @@ public class RunTests {
 		}
 
 		if (cmd.equals("push")) {
+			// HELP: push wait
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String action = tokenizer.sval;
@@ -880,6 +906,7 @@ public class RunTests {
 		}
 				
 		if (cmd.equals("pop")) {
+			// HELP: pop wait
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String action = tokenizer.sval;
@@ -902,6 +929,7 @@ public class RunTests {
 		}
 
 		if (cmd.equals("echo")) {
+			// HELP: echo "string"
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String text = script.getString(tokenizer);
@@ -919,6 +947,9 @@ public class RunTests {
 			// all these command require the browser to have been started
 	
 			if (cmd.equals("field") || cmd.equals("id") || cmd.equals("test-id")) {
+				// HELP: field "<test-id>"
+				// HELP: id "<test-id>"
+				// HELP: test-id "<test-id>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					if (_skip) return;
@@ -931,6 +962,7 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("select")) {
+				// HELP: select "<query-selector>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					if (_skip) return;
@@ -943,6 +975,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("xpath")) {
+				// HELP: xpath "<xpath-expression>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					if (_skip) return;
@@ -955,6 +988,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("wait")) {
+				// HELP: wait <seconds>
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 					System.out.print(' ');
@@ -968,6 +1002,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("if")) {
+				// HELP: if <commands> then <commands> [else <commands>] endif
 				_if = true;
 				System.out.println();
 				return;
@@ -994,12 +1029,15 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("not")) {
+				// HELP: not <check-command>
 				System.out.println();
 				_not = true;
 				return;
 			}
 	
 			if (cmd.equals("set") || cmd.equals("send")) {
+				// HELP: set "<value>"
+				// HELP: send "<value>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					if (_skip) return;
@@ -1013,6 +1051,8 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("test") || cmd.equals("check")) {
+				// HELP: test "<value>"
+				// HELP: check "<value>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
 					if (_skip) return;
@@ -1026,6 +1066,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("checksum")) {
+				// HELP: checksum "<checksum>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
 					if (_skip) return;
@@ -1039,25 +1080,27 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("click")) {
+				// HELP: click
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() {
-						if (!_skip) context.click();
+						if (!_skip) selection.click();
 					}
 				};
 				return;
 			}
 			
 			if (cmd.equals("scroll-into-view")) {
+				// HELP: scroll-into-view
 				System.out.println();
-				if (null == context) throw new Exception(cmd + " command requires a field context at line " + tokenizer.lineno());
+				if (null == selection) throw new Exception(cmd + " command requires a field selection at line " + tokenizer.lineno());
 				if (!_skip) {
 					try {
-						scrollContextIntoView(context);
+						scrollContextIntoView(selection);
 					} catch(Exception e) {
 						System.out.println(e.getMessage());
-						info(context, contextSelector, false);
+						info(selection, selectionCommand, false);
 						throw e;
 					}
 				}
@@ -1065,24 +1108,26 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("clear")) {
+				// HELP: clear
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() {
-						if (!_skip) context.clear();
+						if (!_skip) selection.clear();
 					}
 				};
 				return;
 			}
 			
 			if (cmd.equals("call")) {
+				// HELP: call <function> { args ... }
 				String function = null, args = null;
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {		// expect a quoted string
 					function = tokenizer.sval;
 					System.out.print(' ');
 					System.out.print(function);
-					args = getArgs(tokenizer, ',', true);
+					args = getBlock(tokenizer, ',', true);
 					if (_skip) return;
 					if (null == args) args = "";
 					String js = "var result = window.RegressionTest.test('"+function+"',[" + args + "]);"
@@ -1091,10 +1136,10 @@ public class RunTests {
 					Object result = driver.executeAsyncScript(js);
 					if (null != result) {
 						if (result.getClass() == RemoteWebElement.class) {
-							context = (RemoteWebElement) result;
-							ctype = ContextType.Script;
+							selection = (RemoteWebElement) result;
+							stype = SelectionType.Script;
 							selector = js;
-							System.out.println("new context " + context);
+							System.out.println("new selection " + selection);
 						}
 					}
 					return;
@@ -1104,11 +1149,12 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("enabled")) {
+				// HELP: enabled
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (!_skip || context.isEnabled() != _not) {
+						if (!_skip || selection.isEnabled() != _not) {
 							_not = false;
 							return;
 						}
@@ -1119,11 +1165,12 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("selected")) {
+				// HELP: selected
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (_skip || context.isSelected() != _not) {
+						if (_skip || selection.isSelected() != _not) {
 							_not = false;
 							return;
 						}
@@ -1134,11 +1181,12 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("displayed")) {
+				// HELP: displayed
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (_skip || context.isDisplayed() != _not) {
+						if (_skip || selection.isDisplayed() != _not) {
 							_not = false;
 							return;
 						}
@@ -1149,6 +1197,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("at")) {
+				// HELP: at <x|*>,<y>
 				int x = 0, y = 0;
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
@@ -1174,7 +1223,7 @@ public class RunTests {
 							new WaitFor(cmd, tokenizer, true) {
 								@Override
 								protected void run() throws RetryException {
-									Point loc = context.getLocation();
+									Point loc = selection.getLocation();
 									if (_skip || ((loc.x == X || X == -1) && loc.y == Y) != _not) {
 										_not = false;
 										return;
@@ -1191,6 +1240,7 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("size")) {
+				// HELP: size <w|*>,<h>
 				int mw = 0, w = 0, h = 0;
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
@@ -1223,7 +1273,7 @@ public class RunTests {
 							new WaitFor(cmd, tokenizer, true) {
 								@Override
 								protected void run() throws RetryException {
-									Dimension size = context.getSize();
+									Dimension size = selection.getSize();
 									if (_skip || ((MW == -1 || (size.width >= MW && size.width <= W)) && size.height == H) != _not) {
 										_not = false;
 										return;
@@ -1240,6 +1290,7 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("tag")) {
+				// HELP: tag <tag-name>
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					System.out.print(' ');
@@ -1248,7 +1299,7 @@ public class RunTests {
 					new WaitFor(cmd, tokenizer, true) {
 						@Override
 						protected void run() throws RetryException {
-							String tag = context.getTagName();
+							String tag = selection.getTagName();
 							if (_skip || tokenizer.sval.equals(tag) != _not) {
 								_not = false;
 								return;
@@ -1263,13 +1314,15 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("info")) {
+				// HELP: info
 				System.out.println();
-				if (null == context) throw new Exception("info command requires a context at line " + tokenizer.lineno());
-				info(context, contextSelector, true);
+				if (null == selection) throw new Exception("info command requires a selection at line " + tokenizer.lineno());
+				info(selection, selectionCommand, true);
 				return;
 			}
 			
 			if (cmd.equals("alert")) {
+				// HELP: alert accept
 				System.out.println();
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
@@ -1286,41 +1339,45 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("dump")) {
+				// HELP: dump
 				System.out.println();
 				if (!_skip) dump();
 				return;
 			}
 			
 			if (cmd.equals("mouse")) {
-				parseArgs(tokenizer, new ArgHandler() {
-					public void processArg(StreamTokenizer tokenizer, String arg) {
-						int l = arg.length();
-						if (arg.equals("center")) {
-							actions.moveToElement(context);
-						} else if ((l > 1 && arg.substring(1,l-1).equals("0,0")) || arg.equals("origin")) {
-							actions.moveToElement(context,0,0);
-						} else if (arg.equals("body")) {
+				// HELP: mouse { <center|0,0|origin|body|down|up|click|+/-x,+/-y> commands ... }
+				parseBlock(tokenizer, new BlockHandler() {
+					public void parseToken(StreamTokenizer tokenizer, String token) {
+						int l = token.length();
+						if (token.equals("center")) {
+							actions.moveToElement(selection);
+						} else if ((l > 1 && token.substring(1,l-1).equals("0,0")) || token.equals("origin")) {
+							actions.moveToElement(selection,0,0);
+						} else if (token.equals("body")) {
 							actions.moveToElement(driver.findElement(By.tagName("body")),0,0);
-						} else if (arg.equals("down")) {
+						} else if (token.equals("down")) {
 							actions.clickAndHold();
-						} else if (arg.equals("up")) {
+						} else if (token.equals("up")) {
 							actions.release();
-						} else if (arg.equals("click")) {
+						} else if (token.equals("click")) {
 							actions.click();
 						} else if (l > 1) {
-							String [] a = arg.substring(1,l-1).split(",");
+							String [] a = token.substring(1,l-1).split(",");
 							actions.moveByOffset(Integer.valueOf(a[0]), Integer.valueOf(a[1]));
 						} else {
 							// no-op
 						}
 					}						
 				});
+				System.out.println();
 				actions.release();
 				actions.build().perform();
 				return;
 			}
 	
 			if (cmd.equals("sleep")) {
+				// HELP: sleep <seconds>
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 					System.out.print(' ');
@@ -1333,6 +1390,7 @@ public class RunTests {
 			}
 			
 			if (cmd.equals("fail")) {
+				// HELP: fail "<message>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					String text = tokenizer.sval;
@@ -1349,14 +1407,15 @@ public class RunTests {
 			}
 	
 			if (cmd.equals("debugger")) {
+				// HELP: debugger
 				System.out.println();
 				Sleeper.sleepTightInSeconds(10);
 				return;
 			}
 		}
 		
-		if (aliases.containsKey(cmd)) {
-			runAlias(cmd, file, tokenizer);
+		if (functions.containsKey(cmd)) {
+			executeFunction(cmd, file, tokenizer);
 			return;
 		}
 
@@ -1436,8 +1495,8 @@ public class RunTests {
 	}
 	
 	private void addAlias(String name, List<String> params, String args) {
-		Script alias = new Script(params, args);
-		aliases.put(name, alias);		
+		ExecutionContext alias = new ExecutionContext(params, args);
+		functions.put(name, alias);		
 	}
 	
 	private boolean compareStrings(String s1, String s2, boolean checksum) {
@@ -1449,15 +1508,15 @@ public class RunTests {
 		return s1.equals(s2);
 	}
 
-	private void testContextValue(String cmd, final Script script, final StreamTokenizer tokenizer, final boolean checksum) throws Exception {
+	private void testContextValue(String cmd, final ExecutionContext script, final StreamTokenizer tokenizer, final boolean checksum) throws Exception {
 		new WaitFor(cmd, tokenizer, true) {
 			@Override
 			protected void run() throws RetryException {
-				String tagName = context.getTagName();
+				String tagName = selection.getTagName();
 				String test = script.getString(tokenizer);
 				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
 					System.out.println("// Checking element value is " + (_not ? "NOT " : "") + " equal to '" + test + "'");
-					String value = context.getAttribute("value");
+					String value = selection.getAttribute("value");
 					if (_not != (null != value && compareStrings(value, test, checksum))) {
 						_not = false;
 						return;
@@ -1470,7 +1529,7 @@ public class RunTests {
 					throw new RetryException("value check failed");
 				} else {
 					System.out.println("// Checking element textContent is " + (_not ? "NOT " : "") + "equal to '" + test + "'");
-						String value = context.getText();
+						String value = selection.getText();
 						if (_not != (null != value && compareStrings(value, test, checksum))) {
 							_not = false;
 							return;
@@ -1485,21 +1544,21 @@ public class RunTests {
 			}
 			@Override
 			protected void fail(Exception e) throws Exception {
-				throw new Exception(e.getMessage() + ": " + tokenizer.sval + " test failed for current select context at line " + tokenizer.lineno());
+				throw new Exception(e.getMessage() + ": " + tokenizer.sval + " test failed for current select selection at line " + tokenizer.lineno());
 			}
 		};
 	}
 
-	private void setContextValue(String cmd, final Script script, final StreamTokenizer tokenizer, final boolean set) throws Exception {
+	private void setContextValue(String cmd, final ExecutionContext script, final StreamTokenizer tokenizer, final boolean set) throws Exception {
 		new WaitFor(cmd, tokenizer, true) {
 			@Override
 			protected void run() throws Exception {
-				final String tagName = context.getTagName();
+				final String tagName = selection.getTagName();
 				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
-					if (set && !tagName.equals("select")) context.clear();
-					context.sendKeys(script.getString(tokenizer));
+					if (set && !tagName.equals("select")) selection.clear();
+					selection.sendKeys(script.getString(tokenizer));
 				} else {
-					throw new Exception("set cannot be used on a non-field context at line " + tokenizer.lineno());
+					throw new Exception("set cannot be used on a non-field selection at line " + tokenizer.lineno());
 				}
 			}
 			@Override
@@ -1516,24 +1575,24 @@ public class RunTests {
 	private boolean sleepAndReselect(int ms) throws Exception {
 		if (autolog) dumpLog();
 		long waitTimer = (_waitFor - (new Date()).getTime());
-		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + context.getId());
+		System.out.println("// SLEEP AND RESELECT [wait=" + waitTimer + "] ID " + selection.getId());
 //		if (waitTimer < -(ms*2)) {
 //			System.out.println("AUTO WAIT FOR 1s");
 //			_waitFor = (new Date()).getTime() + 1000;
 //		}
 		Sleeper.sleepTight(ms);
 		try {
-			if (ctype == ContextType.XPath || ctype == ContextType.Field) {
-				context = (RemoteWebElement) driver.findElement(By.xpath(selector));
+			if (stype == SelectionType.XPath || stype == SelectionType.Field) {
+				selection = (RemoteWebElement) driver.findElement(By.xpath(selector));
 			}
-			else if (ctype == ContextType.Select) {
-				context = (RemoteWebElement) driver.findElement(By.cssSelector(selector));
+			else if (stype == SelectionType.Select) {
+				selection = (RemoteWebElement) driver.findElement(By.cssSelector(selector));
 			}
-			else if (ctype == ContextType.Script) {
+			else if (stype == SelectionType.Script) {
 				Object result = driver.executeAsyncScript(selector);
 				if (null != result) {
 					if (result.getClass() == RemoteWebElement.class) {
-						context = (RemoteWebElement) result;
+						selection = (RemoteWebElement) result;
 					}
 				}
 			}
@@ -1549,21 +1608,21 @@ public class RunTests {
 		return true;
 	}
 
-	private void xpathContext(Script script, StreamTokenizer tokenizer) throws Exception {
+	private void xpathContext(ExecutionContext script, StreamTokenizer tokenizer) throws Exception {
 		Exception e;
-		ctype = ContextType.None;
+		stype = SelectionType.None;
 		selector = null;
 		String sval = script.getString(tokenizer);
 		System.out.println(sval);
 		do {
 			try {
-				context = (RemoteWebElement) driver.findElement(By.xpath(sval));
+				selection = (RemoteWebElement) driver.findElement(By.xpath(sval));
 				if (_not) { 
 					_test = _not = false; 
 					throw new Exception("not xpath " + sval + " is invalid on line " + tokenizer.lineno()); 
 				}
-				contextSelector = "xpath \"" + sval + "\"";
-				ctype = ContextType.XPath;
+				selectionCommand = "xpath \"" + sval + "\"";
+				stype = SelectionType.XPath;
 				selector = sval;
 				_test = true;
 				return;
@@ -1575,26 +1634,26 @@ public class RunTests {
 		_waitFor = 0;
 		_test = false;
 		if (!_if)  {
-			if (_not) { _test = true; context = null; _not = false; return; }
+			if (_not) { _test = true; selection = null; _not = false; return; }
 			throw new Exception("xpath " + sval + " is invalid on line " + tokenizer.lineno() + " " + e.getMessage());
 		}
 	}
 
-	private void selectContext(StreamTokenizer tokenizer, Script script) throws Exception {
+	private void selectContext(StreamTokenizer tokenizer, ExecutionContext script) throws Exception {
 		Exception e;
-		ctype = ContextType.None;
+		stype = SelectionType.None;
 		selector = null;
 		String sval = script.getString(tokenizer);
 		System.out.println(sval);
 		do {
 			try {
-				context = (RemoteWebElement) driver.findElement(By.cssSelector(sval));
+				selection = (RemoteWebElement) driver.findElement(By.cssSelector(sval));
 				if (_not) {
 					_test = _not = false; 
 					throw new Exception("not selector " + sval + " is invalid on line " + tokenizer.lineno()); 
 				}
-				contextSelector = "select \"" + sval + "\"";
-				ctype = ContextType.Select;
+				selectionCommand = "select \"" + sval + "\"";
+				stype = SelectionType.Select;
 				selector = sval;
 				_test = true;
 				return;
@@ -1606,27 +1665,27 @@ public class RunTests {
 		_waitFor = 0;
 		_test = false;
 		if (!_if) {
-			if (_not) { _test = true; context = null; selector = null; _not = false; return; }
+			if (_not) { _test = true; selection = null; selector = null; _not = false; return; }
 			throw new Exception("selector " + sval + " is invalid on line " + tokenizer.lineno() + " " + e.getMessage());
 		}
 	}
 
-	private void setContextToField(Script script, StreamTokenizer tokenizer) throws Exception {
+	private void setContextToField(ExecutionContext script, StreamTokenizer tokenizer) throws Exception {
 		Exception e;
 		String sval = script.getString(tokenizer);
 		System.out.println(sval);
 		String query = "//*[@test-id='"+sval+"']";
-		ctype = ContextType.None;
+		stype = SelectionType.None;
 		selector = null;
 		do {
 			try {
-				context = (RemoteWebElement) driver.findElement(By.xpath(query));
+				selection = (RemoteWebElement) driver.findElement(By.xpath(query));
 				if (_not) { 
 					_test = _not = false; 
 					throw new Exception("not test-id " + sval + " is invalid on line " + tokenizer.lineno()); 
 				}
-				contextSelector = "field \"" + sval + "\"";
-				ctype = ContextType.Field;
+				selectionCommand = "field \"" + sval + "\"";
+				stype = SelectionType.Field;
 				selector = query;
 				_test = true;
 				return;
@@ -1638,7 +1697,7 @@ public class RunTests {
 		_waitFor = 0;
 		_test = false;
 		if (!_if) {
-			if (_not) { _test = true; context = null; _not = false; return; }
+			if (_not) { _test = true; selection = null; _not = false; return; }
 			throw new Exception("field reference " + sval + " is invalid on line " + tokenizer.lineno() + " " + e.getMessage());
 		}
 	}
