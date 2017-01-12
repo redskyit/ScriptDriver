@@ -1,7 +1,7 @@
 #!/bin/bash
 test ! -d dist -o ! -d tools && { echo "Please run tools/mkdist.sh from root folder" ; exit 1; }
 
-VERSION=0.1
+VERSION=0.2
 DIST=ScriptDriver-$VERSION
 
 build() {
