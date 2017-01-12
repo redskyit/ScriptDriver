@@ -53,11 +53,15 @@ To build this project requires eclipse IDE.  Proceed as follows.
 
 Sorry the instructions are a bit sparse, not yet fully figured out what exactly from eclipse needs to go in source control for it to remember all the project settings.
 
-## Binary Distribution
+## Binary Distribution(s)
 
 A pre-built version of the current release is available here:
 
+### Version `0.2`
 https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
+
+### Previous Versions
+`0.1` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
 
 The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
 
