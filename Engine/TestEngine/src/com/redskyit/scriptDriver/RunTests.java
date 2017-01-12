@@ -79,7 +79,7 @@ public class RunTests {
 			}
 			return null;
 		}
-		public String getString(StreamTokenizer tokenizer) {
+		public String getExpandedString(StreamTokenizer tokenizer) {
 			// Token is a word (rather than quoted string).  We only support $name format
 			// variable substitution in words
 			if (args != null && args.size() > 0) {
@@ -97,7 +97,7 @@ public class RunTests {
 					String s = tokenizer.sval;
 					for (int i = 0; i < params.size(); i++) {
 						Object v = args.get(i);
-						if (v.getClass() == java.lang.Double.class) {
+						if (v.getClass() == Double.class) {
 							Integer value = new Integer(((Double)v).intValue());
 							s = s.replace("$I("+params.get(i)+")", value.toString());
 						}
@@ -108,12 +108,24 @@ public class RunTests {
 			}
 			return tokenizer.sval;
 		}
-		public double getNumber(StreamTokenizer tokenizer) {
-			if (tokenizer.sval.startsWith("$")) {
-				Object repl = this.getArg(tokenizer.sval.substring(1));
-				if (null != repl) return (Long) repl;
+		public double getExpandedNumber(StreamTokenizer tokenizer) {
+			// Token is a word (rather than quoted string).  We only support $name format
+			// variable substitution in words
+			if (args != null && args.size() > 0) {
+				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+					return tokenizer.nval;
+				}
+				if (tokenizer.ttype == StreamTokenizer.TT_WORD && tokenizer.sval.startsWith("$")) {
+					Object repl = this.getArg(tokenizer.sval.substring(1));
+					if (null != repl) {
+						if (repl.getClass() == Double.class){
+							return ((Double)repl).doubleValue();
+						}
+					}
+				}
+				throw new Error("Argument is not a number");
 			}
-			return tokenizer.nval;
+			throw new Error("Arguments are missing from function call");
 		}
 		public void clearArgs() {
 			if (args != null) args.clear();			
@@ -232,7 +244,7 @@ public class RunTests {
     	// If we have an onexit handler to call, then run it now
     	if (null != onexit) {
     		try {
-				executeFunction(onexit, source, null);
+				executeFunction(onexit, source, null, null);
 			} catch (Exception e) {
 				e.printStackTrace();
 				exitstatus = 2;
@@ -283,31 +295,33 @@ public class RunTests {
 		return file;
 	}
 	
-	private boolean executeFunction(String name, File file, StreamTokenizer parent) throws Exception {
+	private boolean executeFunction(String name, File file, StreamTokenizer parent, ExecutionContext script) throws Exception {
 		ExecutionContext context = functions.get(name);
 		if (null != context) {
 			// If this context has parameters then gather argument values
-			List<String> params = context.getParams();
-			if (null != params && params.size() > 0) {
-				context.clearArgs();
-				int count = params.size();
-				while (count-- > 0) {
-					// get argument
-					parent.nextToken();
-					System.out.print(' ');
-					switch(parent.ttype) {
-					case StreamTokenizer.TT_NUMBER:
-						System.out.print(parent.nval);
-						context.addArg(parent.nval);
-						break;
-					default:
-						System.out.print(parent.sval);
-						context.addArg(parent.sval);
-						break;
+			if (null != parent && null != script) {
+				List<String> params = context.getParams();
+				if (null != params && params.size() > 0) {
+					context.clearArgs();
+					int count = params.size();
+					while (count-- > 0) {
+						// get argument
+						parent.nextToken();
+						System.out.print(' ');
+						switch(parent.ttype) {
+						case StreamTokenizer.TT_NUMBER:
+							System.out.print(parent.nval);
+							context.addArg(parent.nval);
+							break;
+						default:
+							System.out.print(parent.sval);
+							context.addArg(script.getExpandedString(parent));
+							break;
+						}
 					}
 				}
+				System.out.println();
 			}
-			System.out.println();
 			
 			// Get function body and execute it
 			String code = context.getBody();
@@ -721,7 +735,7 @@ public class RunTests {
 				args = getBlock(tokenizer, ' ', false);
 				System.out.println();
 				if (_skip) return;
-				addAlias(name, params, args);		// add alias
+				addFunction(name, params, args);		// add alias
 				return;
 			}
 			System.out.println();			
@@ -932,7 +946,7 @@ public class RunTests {
 			// HELP: echo "string"
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
-				String text = script.getString(tokenizer);
+				String text = script.getExpandedString(tokenizer);
 				System.out.print(' ');
 				System.out.println(text);
 				if (!_skip) System.out.println(text);
@@ -1042,7 +1056,7 @@ public class RunTests {
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 					if (_skip) return;
 					System.out.print(' ');
-					System.out.println(script.getString(tokenizer));
+					System.out.println(script.getExpandedString(tokenizer));
 					this.setContextValue(cmd, script, tokenizer, cmd.equals("set"));
 					return;
 				}
@@ -1057,7 +1071,7 @@ public class RunTests {
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
 					if (_skip) return;
 					System.out.print(' ');
-					System.out.println(script.getString(tokenizer));
+					System.out.println(script.getExpandedString(tokenizer));
 					this.testContextValue(cmd, script, tokenizer, false);
 					return;
 				}
@@ -1071,7 +1085,7 @@ public class RunTests {
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"' || tokenizer.ttype == '\'') {
 					if (_skip) return;
 					System.out.print(' ');
-					System.out.println(script.getString(tokenizer));
+					System.out.println(script.getExpandedString(tokenizer));
 					this.testContextValue(cmd, script, tokenizer, true);
 					return;
 				}
@@ -1415,7 +1429,7 @@ public class RunTests {
 		}
 		
 		if (functions.containsKey(cmd)) {
-			executeFunction(cmd, file, tokenizer);
+			executeFunction(cmd, file, tokenizer, script);
 			return;
 		}
 
@@ -1494,9 +1508,9 @@ public class RunTests {
 		}
 	}
 	
-	private void addAlias(String name, List<String> params, String args) {
-		ExecutionContext alias = new ExecutionContext(params, args);
-		functions.put(name, alias);		
+	private void addFunction(String name, List<String> params, String args) {
+		ExecutionContext script = new ExecutionContext(params, args);
+		functions.put(name, script);		
 	}
 	
 	private boolean compareStrings(String s1, String s2, boolean checksum) {
@@ -1513,7 +1527,7 @@ public class RunTests {
 			@Override
 			protected void run() throws RetryException {
 				String tagName = selection.getTagName();
-				String test = script.getString(tokenizer);
+				String test = script.getExpandedString(tokenizer);
 				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
 					System.out.println("// Checking element value is " + (_not ? "NOT " : "") + " equal to '" + test + "'");
 					String value = selection.getAttribute("value");
@@ -1556,7 +1570,7 @@ public class RunTests {
 				final String tagName = selection.getTagName();
 				if (tagName.equals("input") || tagName.equals("select") || tagName.equals("textarea")) {
 					if (set && !tagName.equals("select")) selection.clear();
-					selection.sendKeys(script.getString(tokenizer));
+					selection.sendKeys(script.getExpandedString(tokenizer));
 				} else {
 					throw new Exception("set cannot be used on a non-field selection at line " + tokenizer.lineno());
 				}
@@ -1612,7 +1626,7 @@ public class RunTests {
 		Exception e;
 		stype = SelectionType.None;
 		selector = null;
-		String sval = script.getString(tokenizer);
+		String sval = script.getExpandedString(tokenizer);
 		System.out.println(sval);
 		do {
 			try {
@@ -1643,7 +1657,7 @@ public class RunTests {
 		Exception e;
 		stype = SelectionType.None;
 		selector = null;
-		String sval = script.getString(tokenizer);
+		String sval = script.getExpandedString(tokenizer);
 		System.out.println(sval);
 		do {
 			try {
@@ -1672,7 +1686,7 @@ public class RunTests {
 
 	private void setContextToField(ExecutionContext script, StreamTokenizer tokenizer) throws Exception {
 		Exception e;
-		String sval = script.getString(tokenizer);
+		String sval = script.getExpandedString(tokenizer);
 		System.out.println(sval);
 		String query = "//*[@test-id='"+sval+"']";
 		stype = SelectionType.None;
