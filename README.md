@@ -1,18 +1,51 @@
 # ScriptDriver
 
-A simple scripting language for driving selenium based web automation and regression testing.
+A simple scripting language for driving selenium based web automation and 
+regression testing.
 
-### Overview
+## Overview
 
-Script Driver is a simple yet powerful scripting language for Selenium, designed to take some of the pain out of writing and updating automation and regression tests for web pages.  Selenium is a powerful automation tool for web pages, but it requires a fair amount of code to do even the simplest things.  The idea behind Script Driver is to hide all the complication inside the script engine, and expose the power of selenium through the simplest of scripting commands.  Simple and quick was the goal behind this project.
+Script Driver is a simple yet powerful scripting language for Selenium, 
+designed to take some of the pain out of writing and updating automation and 
+regression tests for web pages.  Selenium is a powerful automation tool for 
+web pages, but it requires a fair amount of code to do even the simplest 
+things.  The idea behind Script Driver is to hide all the complication inside the script engine, and expose the power of selenium through the simplest of scripting commands.  Simple and quick was the goal behind this project.
 
-### Project Status
+## Project Status
 
-The current state of this project is, that I developed it enough for me to be able to provide a reliable set of regression tests for the html5 application I am developing.  It is by no means a complete scripting language for selenium, as it does not support all of the features selenium supports, and only supports ChromeDriver at present.  It was also developed incrememntally and new features were added quickly and so there was no original design, and no design approval process for enhancements.
+The current state of this project is, that I developed it enough for me to be 
+able to provide a reliable set of regression tests for the html5 application I 
+am developing.  It is by no means a complete scripting language for selenium, 
+as it does not support all of the features selenium supports, and only 
+supports ChromeDriver at present.  It was also developed incrememntally and 
+new features were added quickly and so there was no original design, and no 
+design approval process for enhancements.
 
-ScriptDriver continues to be the main testing environment for the HTML5 application we maintain and has been ever since it was first released.
+ScriptDriver continues to be the main testing environment for the HTML5 
+application we maintain and has been ever since it was first released.
 
-If you're looking for something simple, yet quite powerful, to get you going in web automation / regression testing, you should give ScriptDriver a go.
+If you're looking for something simple, yet quite powerful, to get you going 
+in web automation / regression testing, you should give ScriptDriver a go.
+
+## Release Notes
+
+Version `0.2` is now available.  This release contains some enhancements and new 
+features and bug fixes as well as some refactoring that went on under the 
+hood:
+
+- `Enh`: Improved wait support including an auto wait feature
+- `New`: push/pop wait
+- `New`: Alias parameters (aka functions)
+- `Fix`: sleep fractions (sleep 0.1)
+
+Previous updates to `0.1` included:
+
+- `New`: browser chrome
+- `New`: Checksum support
+- `New`: log auto on
+- `Enh`: abort test on javascript errors
+- `New`: scroll-into-view
+- `Enh`: Wildcard support for at <x> and size <width>
 
 ### Future Plans
 
