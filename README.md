@@ -47,7 +47,7 @@ Previous updates to `0.1` included:
 - `New`: scroll-into-view
 - `Enh`: Wildcard support for at <x> and size <width>
 
-### Future Plans
+## Future Plans
 
 As far as to what our plans are for this project, it is 
 
@@ -58,7 +58,7 @@ As far as to what our plans are for this project, it is
 
 The test script files themselves are platform independent.  The engine is written in java so should run cross platform, though I have only tested it on OS X and Windows.
 
-### Open Source
+## Open Source
 
 We have decided to release this project as open source so that others can maybe benefit from it, and maybe improve on what we have done so far.
 
