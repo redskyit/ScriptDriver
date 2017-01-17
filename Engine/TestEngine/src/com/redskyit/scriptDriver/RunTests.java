@@ -79,6 +79,21 @@ public class RunTests {
 			}
 			return null;
 		}
+		public String getExpandedString(String str) {
+			// Token is a word (rather than quoted string).  We only support $name format
+			// variable substitution in words
+			if (args != null && args.size() > 0) {
+				for (int i = 0; i < params.size(); i++) {
+					Object v = args.get(i);
+					if (v.getClass() == Double.class) {
+						Integer value = new Integer(((Double)v).intValue());
+						str = str.replace("$I("+params.get(i)+")", value.toString());
+					}
+					str = str.replace("$("+params.get(i)+")",args.get(i).toString());
+				}
+			}
+			return str;
+		}
 		public String getExpandedString(StreamTokenizer tokenizer) {
 			// Token is a word (rather than quoted string).  We only support $name format
 			// variable substitution in words
@@ -94,16 +109,7 @@ public class RunTests {
 				}
 				if (tokenizer.ttype == '"') {
 					// token is a quoted string
-					String s = tokenizer.sval;
-					for (int i = 0; i < params.size(); i++) {
-						Object v = args.get(i);
-						if (v.getClass() == Double.class) {
-							Integer value = new Integer(((Double)v).intValue());
-							s = s.replace("$I("+params.get(i)+")", value.toString());
-						}
-						s = s.replace("$("+params.get(i)+")",args.get(i).toString());
-					}
-					return s;
+					return this.getExpandedString(tokenizer.sval);
 				}
 			}
 			return tokenizer.sval;
@@ -354,7 +360,7 @@ public class RunTests {
 		void parseToken(StreamTokenizer tokenizer, String arg) throws IOException;
 	}
 
-	private void parseBlock(StreamTokenizer tokenizer, BlockHandler handler) throws Exception {
+	private void parseBlock(ExecutionContext script, StreamTokenizer tokenizer, BlockHandler handler) throws Exception {
 		tokenizer.nextToken();
 		if (tokenizer.ttype == '{') {
 			int braceLevel = 1;
@@ -380,7 +386,7 @@ public class RunTests {
 					break;
 				case '}': 
 					if (--braceLevel == 0) {
-						System.out.print("}");
+						System.out.println("}");
 						tokenizer.eolIsSignificant(false);
 						return;
 					}
@@ -396,13 +402,13 @@ public class RunTests {
 					// 5 backslashed required in replace string because its processed once
 					// as a string (yielding \\") and then again by the replace method
 					// of the regular expression (so \\" becomes \")
-					arg = '"' + tokenizer.sval.replaceAll("\"", "\\\\\"") + '"';
+					arg = '"' + script.getExpandedString(tokenizer).replaceAll("\"", "\\\\\"") + '"';
 					break;
 				case ',': arg = ","; break;
 				case ':': arg = ":"; break;
 				case '*': arg = "*"; break;
 				default:
-					arg = tokenizer.sval;
+					arg = script.getExpandedString(tokenizer);
 				}
 				System.out.print(arg);
 				handler.parseToken(tokenizer, arg);
@@ -459,15 +465,15 @@ public class RunTests {
 		}
 	};
 
-	private String getBlock(StreamTokenizer tokenizer, char sep, boolean quoteWords) throws Exception {
+	private String getBlock(ExecutionContext script, StreamTokenizer tokenizer, char sep, boolean quoteWords) throws Exception {
 		Block block = new Block(sep, quoteWords);
-		parseBlock(tokenizer, block);
+		parseBlock(script, tokenizer, block);
 		return block.get();
 	}
 
-	private List<String> getArgs(StreamTokenizer tokenizer) throws Exception {
+	private List<String> getArgs(StreamTokenizer tokenizer, ExecutionContext script) throws Exception {
 		ArgArray args = new ArgArray();
-		parseBlock(tokenizer, args);
+		parseBlock(script, tokenizer, args);
 		return args.get();
 	}
 	
@@ -732,7 +738,7 @@ public class RunTests {
 				System.out.print(tokenizer.sval);
 				name = tokenizer.sval;
 				params = getParams(tokenizer);
-				args = getBlock(tokenizer, ' ', false);
+				args = getBlock(script, tokenizer, ' ', false);
 				System.out.println();
 				if (_skip) return;
 				addFunction(name, params, args);		// add alias
@@ -745,7 +751,7 @@ public class RunTests {
 		if (cmd.equals("while")) {
 			// HELP: while { block }
 			String block = null;
-			block = getBlock(tokenizer, ' ', false);
+			block = getBlock(script, tokenizer, ' ', false);
 			if (_skip) return;
 			boolean exitloop = false;
 			while (!exitloop) {
@@ -783,7 +789,7 @@ public class RunTests {
 				String command = tokenizer.sval;
 				System.out.print(' ');
 				System.out.print(command);
-				List<String> args = getArgs(tokenizer);
+				List<String> args = getArgs(tokenizer, script);
 				File include = new File(command.startsWith("/") 
 										? command 
 										: file.getParentFile().getCanonicalPath() + "/" + command
@@ -816,7 +822,7 @@ public class RunTests {
 				String command = tokenizer.sval;
 				System.out.print(' ');
 				System.out.print(command);
-				List<String> args = getArgs(tokenizer);
+				List<String> args = getArgs(tokenizer, script);
 				File include = new File(command.startsWith("/") 
 										? command 
 										: file.getParentFile().getCanonicalPath() + "/" + command
@@ -1138,15 +1144,15 @@ public class RunTests {
 				String function = null, args = null;
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {		// expect a quoted string
-					function = tokenizer.sval;
+					function = script.getExpandedString(tokenizer);
 					System.out.print(' ');
 					System.out.print(function);
-					args = getBlock(tokenizer, ',', true);
+					args = getBlock(script, tokenizer, ',', true);
 					if (_skip) return;
 					if (null == args) args = "";
 					String js = "var result = window.RegressionTest.test('"+function+"',[" + args + "]);"
 									+ "arguments[arguments.length-1](result);";
-					System.out.println(js);
+					System.out.println("> " + js);
 					Object result = driver.executeAsyncScript(js);
 					if (null != result) {
 						if (result.getClass() == RemoteWebElement.class) {
@@ -1361,7 +1367,7 @@ public class RunTests {
 			
 			if (cmd.equals("mouse")) {
 				// HELP: mouse { <center|0,0|origin|body|down|up|click|+/-x,+/-y> commands ... }
-				parseBlock(tokenizer, new BlockHandler() {
+				parseBlock(script, tokenizer, new BlockHandler() {
 					public void parseToken(StreamTokenizer tokenizer, String token) {
 						int l = token.length();
 						if (token.equals("center")) {
