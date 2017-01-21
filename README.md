@@ -29,9 +29,18 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
-Version `0.2` is now available.  This release contains some enhancements and new 
-features and bug fixes as well as some refactoring that went on under the 
-hood:
+Version `0.3` is now available.
+
+Version `0.3` includes screen shot support, and changes the way elements and 
+click timeouts work, now using webdriver built in functionality.
+
+- `Enh`: screen shot support
+- `Enh`: use WebDriverWait for clicks
+- `Enh`: browser wait <seconds> set default driver wait (for finding elements)
+- `Enh`: wait clickable (wait for something to be clickable)
+
+Version `0.2` contains some enhancements and new features and bug fixes as well 
+as some refactoring that went on under the hood:
 
 - `Enh`: Improved wait support including an auto wait feature
 - `New`: push/pop wait
@@ -90,10 +99,11 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-### Version `0.2`
-https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
+### Version `0.3`
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
 
 ### Previous Versions
+`0.2` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
 `0.1` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
 
 The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
@@ -115,4 +125,5 @@ Windows:
 ## Documentation
 ### Language Syntax
 
+https://github.com/redskyit/ScriptDriver/wiki/Language-Syntax-(v0.3)
 https://github.com/redskyit/ScriptDriver/wiki/Language-Syntax-(v0.2)
