@@ -16,18 +16,23 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.zip.CRC32;
 
+import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.InvalidElementStateException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.browserlaunchers.Sleeper;
@@ -39,10 +44,13 @@ import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.logging.Logs;
+import org.openqa.selenium.remote.Augmenter;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.RemoteWebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class RunTests {
 
@@ -150,6 +158,7 @@ public class RunTests {
 	SelectionType stype = SelectionType.None;
 	String selector = null;
 	String selectionCommand = null;
+	private String screenShotPath = null;
 	private long _waitFor = 0;
 	private long _defaultWaitFor = 5000;
 	private boolean _if;
@@ -237,11 +246,14 @@ public class RunTests {
 		File source = null;
 		String onexit = "--onsuccess";
 		int exitstatus = 0;
+		int i = 0;
     	try {
-    		for (int i = 0; i < args.length; i++) {
-				source = runScript(args[i]); 
+    		while (i < args.length) {
+				source = runScript(args[i]);
+				++i;
 			}
     	} catch (Exception e) {
+			System.out.println(args[i]);
     		e.printStackTrace();
     		onexit = "--onfail";
     		exitstatus = 1;
@@ -386,7 +398,7 @@ public class RunTests {
 					break;
 				case '}': 
 					if (--braceLevel == 0) {
-						System.out.println("}");
+						System.out.print("}");
 						tokenizer.eolIsSignificant(false);
 						return;
 					}
@@ -595,6 +607,20 @@ public class RunTests {
 					throw new Exception("browser option command argument missing");
 				}
 				
+				// HELP: browser wait <seconds>
+				if (tokenizer.sval.equals("wait")) {
+					tokenizer.nextToken();
+					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+						System.out.println(' ');
+						System.out.println(tokenizer.nval);
+						if (_skip) return;
+						driver.manage().timeouts().implicitlyWait((long)tokenizer.nval, TimeUnit.SECONDS);
+						return;
+					}
+					System.out.println();
+					throw new Exception("browser wait command argument missing");
+				}
+				
 				if (tokenizer.sval.equals("start")) {
 					// HELP: browser start
 					System.out.println();
@@ -673,10 +699,9 @@ public class RunTests {
 				
 				if (tokenizer.sval.equals("size")) {
 					// HELP: browser size <width>,<height>
-					int w = 0, h = 0;
 					tokenizer.nextToken();
 					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-						w = (int) tokenizer.nval;
+						final int w = (int) tokenizer.nval;
 						System.out.print(' ');
 						System.out.print(w);
 						tokenizer.nextToken();
@@ -684,14 +709,19 @@ public class RunTests {
 							tokenizer.nextToken();
 							System.out.print(',');
 							if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-								h = (int) tokenizer.nval;
+								final int h = (int) tokenizer.nval;
 								System.out.print(h);
 								System.out.println();
 								if (!_skip) {
-									Dimension size = new Dimension(this.chrome.width + w, this.chrome.height + h);
-									System.out.println("// chrome " + this.chrome.toString());
-									System.out.println("// size with chrome " + size.toString());
-									driver.manage().window().setSize(size);
+									new WaitFor(cmd, tokenizer, false) {
+										@Override
+										protected void run() throws RetryException {
+											Dimension size = new Dimension(chrome.width + w, chrome.height + h);
+											System.out.println("// chrome " + chrome.toString());
+											System.out.println("// size with chrome " + size.toString());
+											driver.manage().window().setSize(size);
+										}
+									};
 								}
 								return;
 							}
@@ -881,23 +911,33 @@ public class RunTests {
 		}
 		
 		if (cmd.equals("default")) {
-			// HELP: default wait <seconds>
 			tokenizer.nextToken();
 			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
 				String action = tokenizer.sval;
 				System.out.print(' ');
 				System.out.print(action);
 				if (action.equals("wait")) {
+					// HELP: default wait <seconds>
 					tokenizer.nextToken();
-					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER || tokenizer.ttype == '*') {
+					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 						System.out.print(' ');
 						System.out.println(tokenizer.nval);
 						_defaultWaitFor = (int) (tokenizer.nval * 1000.0);
 					}
 					return;
 				}
+				if (action.equals("screenshot")) {
+					// HELP: default screenshot <path>
+					tokenizer.nextToken();
+					if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+						System.out.print(' ');
+						System.out.println(tokenizer.sval);
+						screenShotPath = tokenizer.sval;
+					}
+					return;
+				}
 				System.out.println();
-				throw new Exception("invalid default property");
+				throw new Exception("invalid default property " + tokenizer.sval);
 			}
 			System.out.println();
 			throw new Exception("default argument should be string or a word");
@@ -961,7 +1001,79 @@ public class RunTests {
 			System.out.println();
 			throw new Exception("echo argument should be string or a word");
 		}
+		
+		if (cmd.equals("sleep")) {
+			// HELP: sleep <seconds>
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+				System.out.print(' ');
+				System.out.println(tokenizer.nval);
+				Sleeper.sleepTight((long) (tokenizer.nval * 1000));
+				return;
+			}
+			System.out.println();
+			throw new Exception("sleep command argument should be a number");
+		}
+		
+		if (cmd.equals("fail")) {
+			// HELP: fail "<message>"
+			tokenizer.nextToken();
+			if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
+				String text = tokenizer.sval;
+				System.out.print(' ');
+				System.out.println(text);
+				if (!_skip) {
+					System.out.println("TEST FAIL: " + text);
+					throw new Exception(text);
+				}
+				return;
+			}
+			System.out.println();
+			throw new Exception("echo argument should be string or a word");
+		}
 
+		if (cmd.equals("debugger")) {
+			// HELP: debugger
+			System.out.println();
+			Sleeper.sleepTightInSeconds(10);
+			return;
+		}
+
+		
+		if (cmd.equals("if")) {
+			// HELP: if <commands> then <commands> [else <commands>] endif
+			_if = true;
+			System.out.println();
+			return;
+		}
+		
+		if (cmd.equals("then")) {
+			_if = false;
+			_skip = !_test;
+			System.out.println();
+			return;
+		}
+
+		if (cmd.equals("else")) {
+			_if = false;
+			_skip = _test;
+			System.out.println();
+			return;
+		}
+
+		if (cmd.equals("endif")) {
+			_skip = false;
+			System.out.println();
+			return;
+		}
+		
+		if (cmd.equals("not")) {
+			// HELP: not <check-command>
+			System.out.println();
+			_not = true;
+			return;
+		}
+		
 		if (null != driver) {
 			
 			// all these command require the browser to have been started
@@ -1018,43 +1130,26 @@ public class RunTests {
 					_waitFor = (long) ((new Date()).getTime() + (tokenizer.nval * 1000));
 					return;
 				}
+				
+				// HELP: wait <action>
+				if (tokenizer.ttype == StreamTokenizer.TT_WORD) {
+					String action = tokenizer.sval;
+					System.out.println(' ');
+					System.out.println(action);
+					if (action.equals("clickable")) {
+						long sleep = (_waitFor - (new Date()).getTime()) / 1000;
+						System.out.println("WebDriverWait for " + sleep + " seconds");
+						WebDriverWait wait = new WebDriverWait(driver, sleep);
+						WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
+						if (element != selection) {
+							throw new Exception("element is not clickable");
+						}
+						return;
+					}
+				}
 				throw new Exception(cmd + " command requires a seconds argument");
 			}
-			
-			if (cmd.equals("if")) {
-				// HELP: if <commands> then <commands> [else <commands>] endif
-				_if = true;
-				System.out.println();
-				return;
-			}
-			
-			if (cmd.equals("then")) {
-				_if = false;
-				_skip = !_test;
-				System.out.println();
-				return;
-			}
-	
-			if (cmd.equals("else")) {
-				_if = false;
-				_skip = _test;
-				System.out.println();
-				return;
-			}
-	
-			if (cmd.equals("endif")) {
-				_skip = false;
-				System.out.println();
-				return;
-			}
-			
-			if (cmd.equals("not")) {
-				// HELP: not <check-command>
-				System.out.println();
-				_not = true;
-				return;
-			}
-	
+
 			if (cmd.equals("set") || cmd.equals("send")) {
 				// HELP: set "<value>"
 				// HELP: send "<value>"
@@ -1104,8 +1199,18 @@ public class RunTests {
 				System.out.println();
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
-					protected void run() {
-						if (!_skip) selection.click();
+					protected void run() throws RetryException {
+						if (!_skip) {
+							long sleep = (_waitFor - (new Date()).getTime()) / 1000;
+							System.out.println("WebDriverWait for " + sleep + " seconds");
+							WebDriverWait wait = new WebDriverWait(driver, sleep);
+							WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
+							if (element == selection) {
+								selection.click();
+							} else {
+								throw new RetryException("click failed");
+							}
+						}
 					}
 				};
 				return;
@@ -1148,6 +1253,7 @@ public class RunTests {
 					System.out.print(' ');
 					System.out.print(function);
 					args = getBlock(script, tokenizer, ',', true);
+					System.out.println();
 					if (_skip) return;
 					if (null == args) args = "";
 					String js = "var result = window.RegressionTest.test('"+function+"',[" + args + "]);"
@@ -1395,45 +1501,34 @@ public class RunTests {
 				actions.build().perform();
 				return;
 			}
-	
-			if (cmd.equals("sleep")) {
-				// HELP: sleep <seconds>
-				tokenizer.nextToken();
-				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-					System.out.print(' ');
-					System.out.println(tokenizer.nval);
-					Sleeper.sleepTight((long) (tokenizer.nval * 1000));
-					return;
-				}
-				System.out.println();
-				throw new Exception("sleep command argument should be a number");
-			}
-			
-			if (cmd.equals("fail")) {
-				// HELP: fail "<message>"
+
+			if (cmd.equals("screenshot")) {
+				// HELP: screenshot "<path>"
 				tokenizer.nextToken();
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD || tokenizer.ttype == '"') {
-					String text = tokenizer.sval;
+					String path = tokenizer.sval;
 					System.out.print(' ');
-					System.out.println(text);
+					System.out.println(path);
 					if (!_skip) {
-						System.out.println("TEST FAIL: " + text);
-						throw new Exception(text);
+				        WebDriver augmentedDriver = new Augmenter().augment(driver);
+				        File screenshot = ((TakesScreenshot)augmentedDriver).
+				                            getScreenshotAs(OutputType.FILE);
+				        String outputPath;
+				        if (screenShotPath == null || path.startsWith("/") || path.substring(1, 1).equals(":")) {
+				        	outputPath = path;
+				        } else {
+				        	outputPath = screenShotPath + (screenShotPath.endsWith("/") ? "" : "/") + path;
+				        }
+				        System.out.println(screenshot.getAbsolutePath() + " -> " + path);
+					    FileUtils.moveFile(screenshot, new File(outputPath));
 					}
 					return;
 				}
 				System.out.println();
-				throw new Exception("echo argument should be string or a word");
+				throw new Exception("screenshot argument should be a path");
 			}
-	
-			if (cmd.equals("debugger")) {
-				// HELP: debugger
-				System.out.println();
-				Sleeper.sleepTightInSeconds(10);
-				return;
-			}
-		}
-		
+		}		
+
 		if (functions.containsKey(cmd)) {
 			executeFunction(cmd, file, tokenizer, script);
 			return;
