@@ -1,7 +1,11 @@
 #!/bin/bash
 test ! -d dist -o ! -d tools && { echo "Please run tools/mkdist.sh from root folder" ; exit 1; }
 
-VERSION=0.2
+VERSION=`cat Engine/TestEngine/VERSION`
+case "$VERSION" in
+0.?) ;;
+*) echo "Can't determine version, aborting" 1>&2 ; exit 1 ;;
+esac
 DIST=ScriptDriver-$VERSION
 
 build() {
