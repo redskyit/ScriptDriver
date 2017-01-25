@@ -29,7 +29,12 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
-Version `0.3` is now available.
+Version `0.3.1` is now available.
+
+- `Fix`: Don't try and wait for -tve periods
+- `Fix`: browser wait <seconds> can now be a alias argument
+- `Enh`: Added click-now command, performs a click without waiting.  Useful
+in some circumstances when elements are quickly changing.
 
 Version `0.3` includes screen shot support, and changes the way elements and 
 click timeouts work, now using webdriver built in functionality.
@@ -99,10 +104,11 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-### Version `0.3`
-https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
+### Version `0.3.1`
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.1.tgz
 
 ### Previous Versions
+`0.3` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
 `0.2` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
 `0.1` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
 
