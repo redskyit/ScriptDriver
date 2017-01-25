@@ -1135,11 +1135,15 @@ public class RunTests {
 					System.out.println(action);
 					if (action.equals("clickable")) {
 						long sleep = (_waitFor - (new Date()).getTime()) / 1000;
-						System.out.println("WebDriverWait for " + sleep + " seconds");
-						WebDriverWait wait = new WebDriverWait(driver, sleep);
-						WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
-						if (element != selection) {
-							throw new Exception("element is not clickable");
+						if (sleep > 0) {
+							System.out.println("WebDriverWait for " + sleep + " seconds");
+							WebDriverWait wait = new WebDriverWait(driver, sleep);
+							WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
+							if (element != selection) {
+								throw new Exception("element is not clickable");
+							}
+						} else {
+							System.out.println("WebDriverWait for " + sleep + " seconds (skipped)");
 						}
 						return;
 					}
@@ -1191,22 +1195,30 @@ public class RunTests {
 				throw new Exception(cmd + " command requires a value argument");
 			}
 	
-			if (cmd.equals("click")) {
+			if (cmd.equals("click") || cmd.equals("click-now")) {
 				// HELP: click
 				System.out.println();
+				final boolean wait = !cmd.equals("click-now");
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
 						if (!_skip) {
-							long sleep = (_waitFor - (new Date()).getTime()) / 1000;
-							System.out.println("WebDriverWait for " + sleep + " seconds");
-							WebDriverWait wait = new WebDriverWait(driver, sleep);
-							WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
-							if (element == selection) {
-								selection.click();
-							} else {
-								throw new RetryException("click failed");
+							if (wait) { 
+								long sleep = (_waitFor - (new Date()).getTime()) / 1000;
+								if (sleep > 0) {
+									System.out.println("WebDriverWait for " + sleep + " seconds");
+									WebDriverWait wait = new WebDriverWait(driver, sleep);
+									WebElement element = wait.until(ExpectedConditions.elementToBeClickable(selection));
+									if (element == selection) {
+										selection.click();
+										return;
+									} else {
+										throw new RetryException("click failed");
+									}
+								}
 							}
+							// click-nowait, no or negative wait period, just click
+							selection.click();
 						}
 					}
 				};
