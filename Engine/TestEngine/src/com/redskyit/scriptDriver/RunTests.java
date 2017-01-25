@@ -170,7 +170,7 @@ public class RunTests {
 	private Dimension chrome = new Dimension(0,0);
 	private HashMap<String, ArrayList<Object>> stacks = new HashMap<String, ArrayList<Object>>();
 
-	private static String version = "0.3";
+	private static String version = "0.3.1";
 	
 	@SuppressWarnings("serial")
 	public class RetryException extends Exception {
