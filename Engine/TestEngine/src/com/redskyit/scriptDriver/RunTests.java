@@ -125,10 +125,10 @@ public class RunTests {
 		public double getExpandedNumber(StreamTokenizer tokenizer) {
 			// Token is a word (rather than quoted string).  We only support $name format
 			// variable substitution in words
+			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+				return tokenizer.nval;
+			}
 			if (args != null && args.size() > 0) {
-				if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-					return tokenizer.nval;
-				}
 				if (tokenizer.ttype == StreamTokenizer.TT_WORD && tokenizer.sval.startsWith("$")) {
 					Object repl = this.getArg(tokenizer.sval.substring(1));
 					if (null != repl) {
@@ -610,15 +610,12 @@ public class RunTests {
 				// HELP: browser wait <seconds>
 				if (tokenizer.sval.equals("wait")) {
 					tokenizer.nextToken();
-					if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
-						System.out.println(' ');
-						System.out.println(tokenizer.nval);
-						if (_skip) return;
-						driver.manage().timeouts().implicitlyWait((long)tokenizer.nval, TimeUnit.SECONDS);
-						return;
-					}
-					System.out.println();
-					throw new Exception("browser wait command argument missing");
+					double nval = script.getExpandedNumber(tokenizer);
+					System.out.print(' ');
+					System.out.println(nval);
+					if (_skip) return;
+					driver.manage().timeouts().implicitlyWait((long)(tokenizer.nval * 1000), TimeUnit.MILLISECONDS);
+					return;
 				}
 				
 				if (tokenizer.sval.equals("start")) {
