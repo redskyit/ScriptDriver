@@ -30,7 +30,7 @@ in web automation / regression testing, you should give ScriptDriver a go.
 ## Release Notes
 
 Version `0.3.2` is now available.
-- `Enh`: Add browser control verbs `refresh`, `back` and `forwards`
+- `Enh`: Add browser control verbs `refresh`, `back` and `forward`
 - `Fix`: CRC `checksum` of non-input elements (like div).
 
 Version `0.3.1` includes a couple of fixes and a special version of the ```click``` command.
