@@ -29,6 +29,10 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
+Version `0.3.2` is now available.
+- `Enh`: Add browser control vers `refresh` `back` `forwards`
+- `Fix`: CRC `checksum` of non-input elements (like div).
+
 Version `0.3.1` is now available.
 
 - `Fix`: Don't try and wait for -tve periods
@@ -104,8 +108,8 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-### Version `0.3.1`
-https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.1.tgz
+### Version `0.3.2`
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.2.tgz
 
 ### Previous Versions
 `0.3` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz

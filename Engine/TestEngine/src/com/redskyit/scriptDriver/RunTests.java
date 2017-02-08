@@ -658,6 +658,27 @@ public class RunTests {
 					throw new Exception("browser get command argument should be a quoted url");
 				}
 				
+				if (tokenizer.sval.equals("refresh")) {
+					// HELP: browser refresh
+					System.out.println();
+					driver.navigate().refresh();
+					return;
+				}
+
+				if (tokenizer.sval.equals("back")) {
+					// HELP: browser refresh
+					System.out.println();
+					driver.navigate().back();
+					return;
+				}
+
+				if (tokenizer.sval.equals("forward")) {
+					// HELP: browser refresh
+					System.out.println();
+					driver.navigate().forward();
+					return;
+				}
+
 				if (tokenizer.sval.equals("close")) {
 					// HELP: browser close
 					System.out.println();
@@ -1587,9 +1608,10 @@ public class RunTests {
 				if (tag.equals("input") || tag.equals("select")) {
 					System.out.print(" check \"" + element.getAttribute("value") + "\"");
 				} else {
-					if (tag.equals("textarea")) {
+					String text = tag.equals("textarea") ? element.getAttribute("value") : element.getText();
+					if (text.indexOf('\n') != -1) {
 						CRC32 crc = new CRC32();
-						crc.update(element.getAttribute("value").getBytes());
+						crc.update(text.getBytes());
 						System.out.print(" checksum \"crc32:" + crc.getValue() + "\"");
 					} else {
 						System.out.print(" check \"" + element.getText() + "\"");
