@@ -30,10 +30,10 @@ in web automation / regression testing, you should give ScriptDriver a go.
 ## Release Notes
 
 Version `0.3.2` is now available.
-- `Enh`: Add browser control vers `refresh` `back` `forwards`
+- `Enh`: Add browser control verbs `refresh`, `back` and `forwards`
 - `Fix`: CRC `checksum` of non-input elements (like div).
 
-Version `0.3.1` is now available.
+Version `0.3.1` includes a couple of fixes and a special version of the ```click``` command.
 
 - `Fix`: Don't try and wait for -tve periods
 - `Fix`: browser wait <seconds> can now be a alias argument
@@ -112,9 +112,9 @@ A pre-built version of the current release is available here:
 https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.2.tgz
 
 ### Previous Versions
-`0.3` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
-`0.2` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
-`0.1` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
+* `0.3` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
+* `0.2` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.2.tgz
+* `0.1` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.1.tgz
 
 The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
 
