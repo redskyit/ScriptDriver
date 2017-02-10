@@ -1600,9 +1600,9 @@ public class RunTests {
 				System.out.print(null == selector ? "test-id \"" + element.getAttribute("test-id") + "\"" : selector);
 				System.out.print(" info");
 				System.out.print(" tag " + tag);
+				System.out.print((element.isDisplayed() ? "" : " not") + " displayed");
 				System.out.print(" at " + loc.x + "," + loc.y);
 				System.out.print(" size " + size.width + "," + size.height);
-				System.out.print((element.isDisplayed() ? "" : " not") + " displayed");
 				System.out.print((element.isEnabled() ? "" : " not") + " enabled");
 				System.out.print((element.isSelected() ? "" : " not") + " selected");
 				if (tag.equals("input") || tag.equals("select")) {
