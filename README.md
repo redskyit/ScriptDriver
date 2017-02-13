@@ -29,6 +29,9 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
+Version `0.3.3` is now available.
+- `Fix`: Issue #19: Change `info` output to output `displayed` check before `at` and `size` checks.
+
 Version `0.3.2` is now available.
 - `Enh`: Add browser control verbs `refresh`, `back` and `forward`
 - `Fix`: CRC `checksum` of non-input elements (like div).
@@ -108,8 +111,8 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-### Version `0.3.2`
-https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.2.tgz
+### Version `0.3.3`
+https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.3.tgz
 
 ### Previous Versions
 * `0.3` https://dl.dropboxusercontent.com/u/43876768/ScriptDriver/ScriptDriver-0.3.tgz
