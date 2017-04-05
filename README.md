@@ -29,6 +29,9 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
+Version `0.4.0` is now available.
+- `Enh`: Upgrade to selenium server 3.3.1
+
 Version `0.3.3` is now available.
 - `Fix`: Issue #19: Change `info` output to output `displayed` check before `at` and `size` checks.
 
