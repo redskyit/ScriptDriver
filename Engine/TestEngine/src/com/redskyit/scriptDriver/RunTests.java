@@ -4,6 +4,8 @@
 //
 package com.redskyit.scriptDriver;
 
+// API documentation: https://seleniumhq.github.io/selenium/docs/api/java/
+
 import java.io.BufferedReader;
 import java.io.CharArrayReader;
 import java.io.File;
@@ -23,6 +25,7 @@ import java.util.zip.CRC32;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 
+import org.openqa.selenium.support.ui.Duration;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.InvalidElementStateException;
@@ -35,7 +38,7 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.browserlaunchers.Sleeper;
+import org.openqa.selenium.support.ui.Sleeper;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
@@ -170,7 +173,7 @@ public class RunTests {
 	private Dimension chrome = new Dimension(0,0);
 	private HashMap<String, ArrayList<Object>> stacks = new HashMap<String, ArrayList<Object>>();
 
-	private static String version = "0.3.3";
+	private static String version = "0.4.0";
 	
 	@SuppressWarnings("serial")
 	public class RetryException extends Exception {
@@ -540,7 +543,7 @@ public class RunTests {
 		parseParams(tokenizer, params);
 		return params.get();
 	}
-	
+		
 	private void runCommand(final StreamTokenizer tokenizer, File file, String source, ExecutionContext script) throws Exception {
 		// Automatic log dumping
 		if (autolog && null != driver) {
@@ -580,7 +583,13 @@ public class RunTests {
 						case StreamTokenizer.TT_WORD:
 						case '"':
 							System.out.println(tokenizer.sval);
-							prefs.put(pref, tokenizer.sval);
+							if (tokenizer.sval.equals("false")) {
+								prefs.put(pref, false);
+							} else if (tokenizer.sval.equals("true")) {
+								prefs.put(pref, true);
+							} else {
+								prefs.put(pref, tokenizer.sval);
+							}
 							return;
 						case StreamTokenizer.TT_NUMBER:
 							System.out.println(tokenizer.nval);
@@ -626,7 +635,8 @@ public class RunTests {
 						DesiredCapabilities capabilities = DesiredCapabilities.chrome();
 						LoggingPreferences logs = new LoggingPreferences();
 						if (null != options) {
-							if (null != prefs) options.setExperimentalOption("prefs", prefs);
+							if (null == prefs) prefs = new HashMap<String, Object>();
+							options.setExperimentalOption("prefs", prefs);
 							capabilities.setCapability(ChromeOptions.CAPABILITY, options);
 						}
 						logs.enable(LogType.BROWSER, Level.ALL);
@@ -737,7 +747,12 @@ public class RunTests {
 											Dimension size = new Dimension(chrome.width + w, chrome.height + h);
 											System.out.println("// chrome " + chrome.toString());
 											System.out.println("// size with chrome " + size.toString());
-											driver.manage().window().setSize(size);
+											try {
+												driver.manage().window().setSize(size);
+											} catch(Exception e) {
+												e.printStackTrace();
+												throw new RetryException("Could not set browser size");
+											}
 										}
 									};
 								}
@@ -1026,7 +1041,7 @@ public class RunTests {
 			if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 				System.out.print(' ');
 				System.out.println(tokenizer.nval);
-				Sleeper.sleepTight((long) (tokenizer.nval * 1000));
+				this.sleep((long)(tokenizer.nval * 1000));
 				return;
 			}
 			System.out.println();
@@ -1053,7 +1068,7 @@ public class RunTests {
 		if (cmd.equals("debugger")) {
 			// HELP: debugger
 			System.out.println();
-			Sleeper.sleepTightInSeconds(10);
+			this.sleepSeconds(10);
 			return;
 		}
 
@@ -1713,9 +1728,21 @@ public class RunTests {
 			}
 		};
 	}
+
+	private void sleepSeconds(long seconds) {
+		try {
+			Sleeper.SYSTEM_SLEEPER.sleep(new Duration(seconds, java.util.concurrent.TimeUnit.SECONDS));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 	
-	private void sleep(int ms) {
-		Sleeper.sleepTight(ms);
+	private void sleep(long ms) {
+		try {
+			Sleeper.SYSTEM_SLEEPER.sleep(new Duration(ms, java.util.concurrent.TimeUnit.MILLISECONDS));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private boolean sleepAndReselect(int ms) throws Exception {
@@ -1726,7 +1753,7 @@ public class RunTests {
 //			System.out.println("AUTO WAIT FOR 1s");
 //			_waitFor = (new Date()).getTime() + 1000;
 //		}
-		Sleeper.sleepTight(ms);
+		this.sleep(ms);
 		try {
 			if (stype == SelectionType.XPath || stype == SelectionType.Field) {
 				selection = (RemoteWebElement) driver.findElement(By.xpath(selector));
@@ -1750,7 +1777,7 @@ public class RunTests {
 			throw e;
 		}
 		System.out.println("// SLEEPANDRESELECT: RESELECTED " + selector + " SLEEP 100ms");
-		Sleeper.sleepTight(100);  // small delay
+		this.sleep(100);  // small delay
 		return true;
 	}
 
