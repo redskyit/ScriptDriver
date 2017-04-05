@@ -115,18 +115,19 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 A pre-built version of the current release is available here:
 
 ### Version `0.4.0`
-https://www.dropbox.com/s/pfag8d6xpzrj2rb/ScriptDriver-0.4.0.tgz?dl=1
+[Download](https://www.dropbox.com/s/pfag8d6xpzrj2rb/ScriptDriver-0.4.0.tgz?dl=1)
 
 ### Previous Versions
-* `0.3.3` https://www.dropbox.com/s/a9ee8ngdrk8s7p4/ScriptDriver-0.3.3.tgz?dl=1
-* `0.3.2` https://www.dropbox.com/s/2xmoou4f7lui7ek/ScriptDriver-0.3.2.tgz?dl=1
-* `0.3.1` https://www.dropbox.com/s/eae5i0a17sjy2el/ScriptDriver-0.3.1.tgz?dl=1
-* `0.3` https://www.dropbox.com/s/ni7tv32bckvynge/ScriptDriver-0.3.tgz?dl=1
-* `0.2` https://www.dropbox.com/s/pkmxf78hpjwwn5e/ScriptDriver-0.2.tgz?dl=1
-* `0.1` https://www.dropbox.com/s/ludzkdmkm4du59o/ScriptDriver-0.1.tgz?dl=1
+[`0.3.3`](https://www.dropbox.com/s/a9ee8ngdrk8s7p4/ScriptDriver-0.3.3.tgz?dl=1) | 
+[`0.3.2`](https://www.dropbox.com/s/2xmoou4f7lui7ek/ScriptDriver-0.3.2.tgz?dl=1) | 
+[`0.3.1`](https://www.dropbox.com/s/eae5i0a17sjy2el/ScriptDriver-0.3.1.tgz?dl=1) | 
+[`0.3`](https://www.dropbox.com/s/ni7tv32bckvynge/ScriptDriver-0.3.tgz?dl=1) | 
+[`0.2`](https://www.dropbox.com/s/pkmxf78hpjwwn5e/ScriptDriver-0.2.tgz?dl=1) | 
+[`0.1`](https://www.dropbox.com/s/ludzkdmkm4du59o/ScriptDriver-0.1.tgz?dl=1)
 
-### All Version
-https://www.dropbox.com/sh/224wzmmyc5e5wb5/AAAHWZbLjgIb2adJD2E2ey6ja?dl=0 ([download](https://www.dropbox.com/sh/224wzmmyc5e5wb5/AAAHWZbLjgIb2adJD2E2ey6ja?dl=1))
+### All Versions
+[Browse](https://www.dropbox.com/sh/224wzmmyc5e5wb5/AAAHWZbLjgIb2adJD2E2ey6ja?dl=0) | 
+[Download](https://www.dropbox.com/sh/224wzmmyc5e5wb5/AAAHWZbLjgIb2adJD2E2ey6ja?dl=1)
 
 The archive is for Windows and OSX.  Linux users will need to download the correct version of chromedriver.
 
