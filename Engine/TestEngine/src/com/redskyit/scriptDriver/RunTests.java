@@ -21,11 +21,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.zip.CRC32;
+import java.time.Duration;
 
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 
-import org.openqa.selenium.support.ui.Duration;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.InvalidElementStateException;
@@ -634,14 +634,13 @@ public class RunTests {
 						// https://sites.google.com/a/chromium.org/chromedriver/capabilities
 						DesiredCapabilities capabilities = DesiredCapabilities.chrome();
 						LoggingPreferences logs = new LoggingPreferences();
-						if (null != options) {
-							if (null == prefs) prefs = new HashMap<String, Object>();
-							options.setExperimentalOption("prefs", prefs);
-							capabilities.setCapability(ChromeOptions.CAPABILITY, options);
-						}
 						logs.enable(LogType.BROWSER, Level.ALL);
 						capabilities.setCapability(CapabilityType.LOGGING_PREFS, logs);
-    					driver = new ChromeDriver(capabilities);
+						if (null == options) options = new ChromeOptions();
+						if (null == prefs) prefs = new HashMap<String, Object>();
+						options.setExperimentalOption("prefs", prefs);
+						options.merge(capabilities);
+    					driver = new ChromeDriver(options);
 	    				driver.setLogLevel(Level.ALL);
 	    				actions = new Actions(driver);			// for advanced actions
 	    			}
@@ -1731,7 +1730,7 @@ public class RunTests {
 
 	private void sleepSeconds(long seconds) {
 		try {
-			Sleeper.SYSTEM_SLEEPER.sleep(new Duration(seconds, java.util.concurrent.TimeUnit.SECONDS));
+			Sleeper.SYSTEM_SLEEPER.sleep(Duration.ofSeconds(seconds));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -1739,7 +1738,7 @@ public class RunTests {
 	
 	private void sleep(long ms) {
 		try {
-			Sleeper.SYSTEM_SLEEPER.sleep(new Duration(ms, java.util.concurrent.TimeUnit.MILLISECONDS));
+			Sleeper.SYSTEM_SLEEPER.sleep(Duration.ofMillis(ms));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
