@@ -10,8 +10,14 @@
 <mapEntry key="RMC_SERVER_DIR" value="/Users/adf/Sites/RMC2/trunk/tests/regression/test-server/main"/>
 <mapEntry key="RMC_TEST_ROOT" value="/Users/adf/Sites/RMC2/trunk/tests/regression/tests/main"/>
 </mapAttribute>
+<listAttribute key="org.eclipse.jdt.launching.CLASSPATH">
+<listEntry value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;runtimeClasspathEntry containerPath=&quot;org.eclipse.jdt.launching.JRE_CONTAINER&quot; javaProject=&quot;TestEngine&quot; path=&quot;1&quot; type=&quot;4&quot;/&gt;&#10;"/>
+<listEntry value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;runtimeClasspathEntry id=&quot;org.eclipse.jdt.launching.classpathentry.defaultClasspath&quot;&gt;&#10;&lt;memento exportedEntriesOnly=&quot;false&quot; project=&quot;TestEngine&quot;/&gt;&#10;&lt;/runtimeClasspathEntry&gt;&#10;"/>
+<listEntry value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;runtimeClasspathEntry externalArchive=&quot;/Users/adf/Sites/RMC2/trunk/tests/regression/ScriptDriver-0.1/lib/selenium-server-standalone-3.11.0.jar&quot; path=&quot;3&quot; type=&quot;2&quot;/&gt;&#10;"/>
+</listAttribute>
+<booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="false"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.redskyit.scriptDriver.RunTests"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="tests/main/start.test"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="tests/addsearch/start.test"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="TestEngine"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dwebdriver.chrome.driver=ScriptDriver-0.1/lib/chromedriver -classpath ScriptDriver-0.1/lib/testEngine.jar:ScriptDriver-0.1/lib/selenium-server-standalone-2.42.2.jar"/>
 <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/Users/adf/Sites/RMC2/trunk/tests/regression"/>

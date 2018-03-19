@@ -33,7 +33,7 @@ dist() {
 }
 
 pub() {
-	cp -v dist/$DIST.tgz ~/Dropbox/GitHub/ScriptDriver
+	cp -v dist/$DIST.tgz ~/Dropbox*Personal*/GitHub/ScriptDriver
 }
 
 tasks="$@"
