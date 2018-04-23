@@ -124,8 +124,8 @@ A pre-built version of the current release is available here:
 [Download](https://www.dropbox.com/s/gujil6stzds7705/ScriptDriver-0.5.1.tgz?dl=1)
 
 ### Previous Versions
-[`0.5.0`](https://www.dropbox.com/s/ikcnau8tto8mt0g/ScriptDriver-0.5.0.tgz?dl=1)
-[`0.4.0`](https://www.dropbox.com/s/pfag8d6xpzrj2rb/ScriptDriver-0.4.0.tgz?dl=1)
+[`0.5.0`](https://www.dropbox.com/s/ikcnau8tto8mt0g/ScriptDriver-0.5.0.tgz?dl=1) |
+[`0.4.0`](https://www.dropbox.com/s/pfag8d6xpzrj2rb/ScriptDriver-0.4.0.tgz?dl=1) |
 [`0.3.3`](https://www.dropbox.com/s/a9ee8ngdrk8s7p4/ScriptDriver-0.3.3.tgz?dl=1) | 
 [`0.3.2`](https://www.dropbox.com/s/2xmoou4f7lui7ek/ScriptDriver-0.3.2.tgz?dl=1) | 
 [`0.3.1`](https://www.dropbox.com/s/eae5i0a17sjy2el/ScriptDriver-0.3.1.tgz?dl=1) | 
