@@ -1324,11 +1324,13 @@ public class RunTests {
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (!_skip || selection.isEnabled() != _not) {
-							_not = false;
-							return;
+						if (!_skip) {
+							if (selection.isEnabled() != _not) {
+								_not = false;
+								return;
+							}
+							throw new RetryException("enabled check failed");
 						}
-						throw new RetryException("enabled check failed");
 					}
 				};
 				return;
@@ -1340,11 +1342,13 @@ public class RunTests {
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (_skip || selection.isSelected() != _not) {
-							_not = false;
-							return;
+						if (!_skip) {
+							if (selection.isSelected() != _not) {
+								_not = false;
+								return;
+							}
+							throw new RetryException("selected check failed");
 						}
-						throw new RetryException("selected check failed");
 					}
 				};
 				return;
@@ -1356,11 +1360,13 @@ public class RunTests {
 				new WaitFor(cmd, tokenizer, true) {
 					@Override
 					protected void run() throws RetryException {
-						if (_skip || selection.isDisplayed() != _not) {
-							_not = false;
-							return;
+						if (!_skip) {
+							if (selection.isDisplayed() != _not) {
+								_not = false;
+								return;
+							}
+							throw new RetryException("displayed check failed");
 						}
-						throw new RetryException("displayed check failed");
 					}
 				};
 				return;
@@ -1393,12 +1399,14 @@ public class RunTests {
 							new WaitFor(cmd, tokenizer, true) {
 								@Override
 								protected void run() throws RetryException {
-									Point loc = selection.getLocation();
-									if (_skip || ((loc.x == X || X == -1) && loc.y == Y) != _not) {
-										_not = false;
-										return;
+									if (!_skip) {
+										Point loc = selection.getLocation();
+										if (((loc.x == X || X == -1) && loc.y == Y) != _not) {
+											_not = false;
+											return;
+										}
+										throw new RetryException("location check failed");
 									}
-									throw new RetryException("location check failed");
 								}
 							};
 							return;
@@ -1443,12 +1451,14 @@ public class RunTests {
 							new WaitFor(cmd, tokenizer, true) {
 								@Override
 								protected void run() throws RetryException {
-									Dimension size = selection.getSize();
-									if (_skip || ((MW == -1 || (size.width >= MW && size.width <= W)) && size.height == H) != _not) {
-										_not = false;
-										return;
+									if (!_skip) {
+										Dimension size = selection.getSize();
+										if (((MW == -1 || (size.width >= MW && size.width <= W)) && size.height == H) != _not) {
+											_not = false;
+											return;
+										}
+										throw new RetryException("size check failed");
 									}
-									throw new RetryException("size check failed");
 								}
 							};
 							return;
@@ -1469,12 +1479,14 @@ public class RunTests {
 					new WaitFor(cmd, tokenizer, true) {
 						@Override
 						protected void run() throws RetryException {
-							String tag = selection.getTagName();
-							if (_skip || tokenizer.sval.equals(tag) != _not) {
-								_not = false;
-								return;
+							if (!_skip) {
+								String tag = selection.getTagName();
+								if (tokenizer.sval.equals(tag) != _not) {
+									_not = false;
+									return;
+								}
+								throw new RetryException("tag \"" + tokenizer.sval + "\" check failed, tag is " + tag + " at line " + tokenizer.lineno());
 							}
-							throw new RetryException("tag \"" + tokenizer.sval + "\" check failed, tag is " + tag + " at line " + tokenizer.lineno());
 						}
 					};
 					return;
