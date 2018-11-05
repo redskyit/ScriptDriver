@@ -173,7 +173,7 @@ public class RunTests {
 	private Dimension chrome = new Dimension(0,0);
 	private HashMap<String, ArrayList<Object>> stacks = new HashMap<String, ArrayList<Object>>();
 
-	private static String version = "0.4.0";
+	private static String version = "0.5.2";
 	
 	@SuppressWarnings("serial")
 	public class RetryException extends Exception {
@@ -1702,6 +1702,7 @@ public class RunTests {
 				} else {
 					System.out.println("// Checking element textContent is " + (_not ? "NOT " : "") + "equal to '" + test + "'");
 						String value = selection.getText();
+						System.out.println("text: " + value);
 						if (_not != (null != value && compareStrings(value, test, checksum))) {
 							_not = false;
 							return;

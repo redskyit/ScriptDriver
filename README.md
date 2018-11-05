@@ -29,6 +29,9 @@ in web automation / regression testing, you should give ScriptDriver a go.
 
 ## Release Notes
 
+Version `0.5.2` is now available.
+- Update selenium to 3.141
+
 Version `0.5.1` is now available.
 - `Enh`: Fix issue with enabled, selected and displayed checks not working properly.
 
@@ -121,9 +124,10 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 A pre-built version of the current release is available here:
 
 ### Version `0.5.1`
-[Download](https://www.dropbox.com/s/gujil6stzds7705/ScriptDriver-0.5.1.tgz?dl=1)
+[Download](https://www.dropbox.com/s/1crytskufwoyer4/ScriptDriver-0.5.2.tgz?dl=1) |
 
 ### Previous Versions
+[`0.5.1`](https://www.dropbox.com/s/gujil6stzds7705/ScriptDriver-0.5.1.tgz?dl=1) |
 [`0.5.0`](https://www.dropbox.com/s/ikcnau8tto8mt0g/ScriptDriver-0.5.0.tgz?dl=1) |
 [`0.4.0`](https://www.dropbox.com/s/pfag8d6xpzrj2rb/ScriptDriver-0.4.0.tgz?dl=1) |
 [`0.3.3`](https://www.dropbox.com/s/a9ee8ngdrk8s7p4/ScriptDriver-0.3.3.tgz?dl=1) | 

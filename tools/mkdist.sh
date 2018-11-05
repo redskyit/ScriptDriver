@@ -25,7 +25,8 @@ dist() {
 	cp ../tools/run.sh $DIST
 	cp ../examples/* $DIST/examples
 	cp ../Engine/lib/sel*.jar $DIST/lib
-	cp ../Engine/lib/chromedriver* $DIST/lib
+	cp ../Engine/lib/common-io*.jar $DIST/lib
+	cp ../Engine/lib/chromedriver ../Engine/lib/chromedriver.exe $DIST/lib
 	cp ../Engine/TestEngine/testEngine.jar $DIST/lib
 
 	tar cvfz $DIST.tgz $DIST
