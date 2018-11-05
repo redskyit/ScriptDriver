@@ -1691,6 +1691,7 @@ public class RunTests {
 				} else {
 					System.out.println("// Checking element textContent is " + (_not ? "NOT " : "") + "equal to '" + test + "'");
 						String value = selection.getText();
+						System.out.println("text: " + value);
 						if (_not != (null != value && compareStrings(value, test, checksum))) {
 							_not = false;
 							return;
