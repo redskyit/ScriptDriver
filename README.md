@@ -123,8 +123,8 @@ Sorry the instructions are a bit sparse, not yet fully figured out what exactly 
 
 A pre-built version of the current release is available here:
 
-### Version `0.5.1`
-[Download](https://www.dropbox.com/s/1crytskufwoyer4/ScriptDriver-0.5.2.tgz?dl=1) |
+### Version `0.5.2`
+[Download](https://www.dropbox.com/s/1crytskufwoyer4/ScriptDriver-0.5.2.tgz?dl=1)
 
 ### Previous Versions
 [`0.5.1`](https://www.dropbox.com/s/gujil6stzds7705/ScriptDriver-0.5.1.tgz?dl=1) |
